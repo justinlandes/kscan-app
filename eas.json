@@ -11,7 +11,7 @@
         "gradleCommand": ":app:assembleRelease"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://kscan-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://kscan-app.onrender.com"
       }
     },
     "development": {

@@ -8,5 +8,3 @@ node_modules
 /*.png
 /KScan-selected-files.zip
 /test-*.js
-
-.env

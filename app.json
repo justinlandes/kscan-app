@@ -20,7 +20,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.INTERNET",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#06070A"
@@ -30,6 +31,11 @@
       "bundleIdentifier": "com.kscanai.app",
       "infoPlist": {
         "NSCameraUsageDescription": "K Scan uses your camera to photograph your outfit for style analysis."
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a075728d-bd77-446f-843d-0f63fd54cc2e"
       }
     }
   }

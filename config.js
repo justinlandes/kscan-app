@@ -1,6 +1,7 @@
 /**
- * K-SCAN API config. Use your machine's local IP so the device/emulator can reach the backend.
- * Server may run on port 8081 or 8082 (Expo).
+ * DEAD CODE — not imported anywhere. Retained for reference only.
+ * Active URL resolution lives in services/api.js (resolveBaseUrl).
+ * Set EXPO_PUBLIC_API_URL in .env to control the backend target.
  */
 const LOCAL_IP = '192.168.2.84';
 const PORT = 8081;
