@@ -7,7 +7,8 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "applicationArchivePath": "android/app/build/outputs/apk/release/app-release.apk"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://kscan-app.onrender.com"
