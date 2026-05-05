@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "K Scan",
+    "slug": "kscan",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "K Scan uses your camera to photograph your outfit for style analysis."
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.kscanai.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.VIBRATE"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#06070A"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.kscanai.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "K Scan uses your camera to photograph your outfit for style analysis."
+      }
+    }
+  }
+}

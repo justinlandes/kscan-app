@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.local
+/archive/
+/.claude/
+/.gradle-user-home/
+/.idea/
+/*.png
+/KScan-selected-files.zip
+/test-*.js
+
+.env

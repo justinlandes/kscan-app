@@ -1,0 +1,43 @@
+# Production iOS scan flow for K Scan AI.
+# Run after creating maestro/screenshots so the final image has a stable target.
+appId: com.kscan.ai
+name: "iOS Scan - Production"
+tags:
+  - ios
+  - smoke
+  - scan
+---
+- launchApp
+
+# iOS system camera permission is only visible on first install / first run.
+- tapOn:
+    text: "Allow"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+
+# Fail early if launch dropped back to SpringBoard instead of rendering the app.
+- assertVisible:
+    id: "shutter_button"
+
+- waitForAnimationToEnd
+
+# The iOS accessibility identifier is the primary selector. The precise label
+# fallback is optional for simulator runs where identifier lookup is flaky.
+- tapOn:
+    id: "shutter_button"
+- tapOn:
+    label: "Capture photo"
+    optional: true
+
+# Strict loading/result sequence: prove work started, wait for UI settling,
+# then prove loading ended before validating the result.
+- assertVisible: "Loading..."
+- waitForAnimationToEnd
+- assertNotVisible: "Loading..."
+
+- assertVisible:
+    text: ".*Match.*"
+
+- takeScreenshot: "maestro/screenshots/ios-scan-result"

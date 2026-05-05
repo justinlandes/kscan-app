@@ -1,0 +1,251 @@
+# K-SCAN | MASTER ARCHITECT RULES
+# Role: Senior Mobile Engineer & AI Architect
+# Project: K-SCAN (Luxury Fashion AI)
+# Theme: Obsidian (Black/White/Silver, high-contrast, editorial minimalist)
+
+# ─────────────────────────────────────────────
+# 1. DESIGN LANGUAGE — OBSIDIAN THEME
+# ─────────────────────────────────────────────
+
+# Palette
+# Background:       #000000 (primary), #0A0A0A (surface), #111111 (elevated)
+# Text:             #FFFFFF (primary), #A0A0A0 (secondary), #666666 (tertiary)
+# Accent:           #C0C0C0 (silver), #E8E8E8 (highlight)
+# Borders:          rgba(255,255,255,0.08)
+# Error:            #FF3B30
+# Success:          #34C759
+
+# Typography
+# Primary:          Inter (weights: 300 Light, 400 Regular, 500 Medium, 600 SemiBold)
+# Display:          System Serif (for hero/result headlines only)
+# Sizing:           12px body, 14px labels, 20px section heads, 32px display
+
+# Spacing System
+# Base unit:        8px
+# Component gaps:   16px (tight), 24px (standard), 32px (section), 48px (major)
+# Screen padding:   horizontal 24px, vertical safe-area + 16px
+
+# Motion
+# Duration:         200ms (micro), 350ms (standard), 500ms (emphasis)
+# Easing:           cubic-bezier(0.25, 0.1, 0.25, 1.0)
+# Rule:             ALL animations must use `useNativeDriver: true`
+
+# Aesthetic Principles
+# - Minimalist luxury. Large whitespace, restrained motion.
+# - NO generic Material UI / Android patterns.
+# - NO default system alerts, modals, or toasts. All feedback is custom UI.
+# - NO bright accent colors. Everything lives in the black/white/silver range.
+# - NO drop shadows on dark backgrounds. Use border + elevation via opacity shifts.
+
+
+# ─────────────────────────────────────────────
+# 2. TECHNICAL STACK
+# ─────────────────────────────────────────────
+
+# Frontend
+# - React Native (Expo SDK 52+)
+# - Expo Router (file-based routing)
+# - expo-camera (CameraView component)
+# - react-native-reanimated (for complex animations)
+
+# Backend
+# - Expo API Routes (`+api.ts` / `+api.js` files in app/ directory)
+# - Local Node.js server for development
+
+# AI Model
+# - Gemini 2.0 Flash (vision-capable)
+# - Endpoint: Google Generative AI REST API
+# - API key stored in .env as GEMINI_API_KEY (never hardcoded)
+
+
+# ─────────────────────────────────────────────
+# 3. CONNECTIVITY & NETWORKING
+# ─────────────────────────────────────────────
+
+# Dynamic IP Configuration
+# API calls MUST read the base URL from environment:
+#   EXPO_PUBLIC_API_URL=http://192.168.1.XX:8081
+#
+# In code, always reference:
+#   const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081';
+#
+# NEVER hardcode an IP address or port in component files.
+
+# Port Fallback Strategy
+# The dev server may run on 8081 or 8082 (Expo default port conflict).
+# Implement a health-check utility in services/api.ts:
+#
+#   async function resolveApiBase(): Promise<string> {
+#     const base = process.env.EXPO_PUBLIC_API_URL || 'http://localhost';
+#     for (const port of [8081, 8082]) {
+#       try {
+#         const res = await fetch(`${base}:${port}/api/health`, { timeout: 2000 });
+#         if (res.ok) return `${base}:${port}`;
+#       } catch {}
+#     }
+#     throw new Error('K-SCAN backend unreachable on 8081 or 8082');
+#   }
+#
+# Cache the resolved URL for the session. Do not re-check on every request.
+
+# API Response Shape (all /api/analyze endpoints)
+# {
+#   "result": "string — detailed AI fashion analysis text",
+#   "metadata": {
+#     "category": "string",
+#     "color": "string",
+#     "silhouette": "string",
+#     "confidence": "number (0-1)"
+#   }
+# }
+
+
+# ─────────────────────────────────────────────
+# 4. STATE MACHINE
+# ─────────────────────────────────────────────
+
+# Every scan interaction follows this state machine exactly.
+# Each state has a defined UI treatment. Do not invent intermediate states.
+
+# State          | UI Behavior
+# ──────────────────────────────────────────────────────────────────
+# idle           | Viewfinder visible. L-corners static. "Scan" CTA pulsing subtly.
+# capturing      | Shutter flash (100ms white overlay, opacity 0→0.6→0). Haptic light.
+# processing     | Scanning line animates vertically. Skeleton card slides up at 30% opacity.
+# result         | Glassmorphism card slides up with analysis. Metadata chips appear staggered.
+# error          | Card slides up with error message + "Retry" CTA. No system alerts.
+
+# Transitions:
+# idle → capturing:    User taps scan button
+# capturing → processing: Image captured successfully
+# processing → result:   API returns 200
+# processing → error:    API returns non-200 OR network timeout (8s)
+# result → idle:         User taps "Scan Again" or swipes card down
+# error → idle:          User taps "Retry"
+# error → idle:          Auto-dismiss after 10s
+
+
+# ─────────────────────────────────────────────
+# 5. CRITICAL COMPONENTS
+# ─────────────────────────────────────────────
+
+# ── Viewfinder ──
+# Custom L-shaped corners drawn with absolute-positioned Views.
+# Corner size: 28px arm length, 3px stroke width, color #FFFFFF.
+# Corner inset: 32px from each edge.
+# Scanning line: horizontal, full-width of viewfinder, 2px height, color rgba(255,255,255,0.7).
+# Animation: translateY top-to-bottom, 2s duration, linear, infinite loop.
+# MUST use useNativeDriver: true.
+
+# ── Glassmorphism Analysis Card ──
+# Container:
+#   backgroundColor: rgba(10, 10, 10, 0.85)
+#   borderRadius: 24px
+#   borderWidth: 1px
+#   borderColor: rgba(255, 255, 255, 0.1)
+#   backdropFilter: blur(20px)  — use @react-native-community/blur or expo-blur
+#   paddingHorizontal: 24px
+#   paddingVertical: 28px
+#
+# Slide-up animation:
+#   From: translateY(screenHeight * 0.4), opacity 0
+#   To:   translateY(0), opacity 1
+#   Duration: 500ms
+#   Easing: cubic-bezier(0.25, 0.1, 0.25, 1.0)
+#   MUST use useNativeDriver: true
+#
+# Content layout:
+#   - Category label: 12px, Inter 500, #666666, uppercase, letterSpacing 2
+#   - Result headline: 20px, Inter 600, #FFFFFF, marginTop 8
+#   - Analysis body: 14px, Inter 400, #A0A0A0, marginTop 16, lineHeight 22
+#   - Metadata chips: horizontal row, marginTop 20, gap 8
+#     Each chip: paddingH 12, paddingV 6, borderRadius 100, border 1px rgba(255,255,255,0.12)
+#     Chip text: 12px, Inter 400, #C0C0C0
+#   - "Scan Again" CTA: full-width, height 48, borderRadius 12, bg #FFFFFF, text #000000
+#     Font: 14px, Inter 600. marginTop 24.
+
+# ── Error Card ──
+# Same glassmorphism container as Analysis Card.
+# Icon: SF Symbol or custom "!" in circle, 40px, color #FF3B30.
+# Title: "Analysis Failed", 18px Inter 600 #FFFFFF.
+# Message: error description, 14px Inter 400 #A0A0A0.
+# CTA: "Retry" button, same style as "Scan Again".
+
+
+# ─────────────────────────────────────────────
+# 6. CAMERA SAFETY
+# ─────────────────────────────────────────────
+
+# ALWAYS check permissions before mounting CameraView:
+#   const [permission, requestPermission] = useCameraPermissions();
+#   if (!permission?.granted) → show permission request UI (custom, not system)
+#
+# Handle permission states:
+#   - undetermined: Show branded permission prompt with explanation
+#   - denied: Show settings redirect with explanation
+#   - granted: Mount CameraView
+#
+# NEVER mount <CameraView> before permission is confirmed granted.
+
+
+# ─────────────────────────────────────────────
+# 7. CODE ARCHITECTURE
+# ─────────────────────────────────────────────
+
+# File Structure:
+# app/
+#   index.tsx              — Main scan screen (lean: UI + state wiring only)
+#   +api/
+#     analyze+api.ts       — Gemini API route
+#     health+api.ts        — Health check endpoint (returns { status: "ok" })
+# hooks/
+#   useScanState.ts        — State machine logic (idle/capturing/processing/result/error)
+#   useViewfinderAnimation.ts — Scanning line animation
+#   useCardAnimation.ts    — Slide-up/dismiss animation
+# services/
+#   api.ts                 — resolveApiBase(), analyzeImage(base64)
+#   gemini.ts              — Gemini API call wrapper
+# components/
+#   Viewfinder.tsx         — L-corners + scanning line
+#   AnalysisCard.tsx       — Glassmorphism result card
+#   ErrorCard.tsx          — Glassmorphism error card
+#   MetadataChip.tsx       — Individual metadata tag
+#   ScanButton.tsx         — Capture CTA with pulse animation
+# constants/
+#   theme.ts               — All colors, spacing, typography, motion values
+# types/
+#   scan.ts                — ScanState, AnalysisResult, ApiResponse types
+
+# Principles:
+# - app/index.tsx should be <80 lines. All logic lives in hooks/services.
+# - Every color, spacing value, and animation duration comes from constants/theme.ts.
+# - No inline styles for values that exist in the theme.
+# - TypeScript strict mode. No `any` types.
+# - All API calls go through services/api.ts, never called directly from components.
+
+
+# ─────────────────────────────────────────────
+# 8. PERFORMANCE RULES
+# ─────────────────────────────────────────────
+
+# - ALL Animated.* calls must set useNativeDriver: true.
+# - Image capture: use base64 output from expo-camera, compress to quality 0.7.
+# - API timeout: 8 seconds. If exceeded, transition to error state.
+# - Memoize expensive components with React.memo.
+# - No unnecessary re-renders: useScanState should return stable references.
+# - Camera preview must maintain 30fps minimum. No JS-thread-blocking during preview.
+
+
+# ─────────────────────────────────────────────
+# 9. THINGS YOU MUST NEVER DO
+# ─────────────────────────────────────────────
+
+# - NEVER use Alert.alert() or any system dialog. All feedback is in-app custom UI.
+# - NEVER hardcode IP addresses or ports in component/hook files.
+# - NEVER use Material UI / Paper / default RN component libraries for UI elements.
+# - NEVER use bright or saturated colors outside the Obsidian palette.
+# - NEVER skip the error state. Every API call must handle failure gracefully.
+# - NEVER leave console.log in production code. Use __DEV__ guard or remove.
+# - NEVER store API keys in source files. Always use .env + expo-constants.
+# - NEVER mount CameraView without confirmed permission.
+# - NEVER use Animated without useNativeDriver: true.
