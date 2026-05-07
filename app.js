@@ -8,12 +8,16 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Animated,
+  BackHandler,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 
+import { useRouter } from 'expo-router';
+
 import { useScanAnimation } from './hooks/useScanAnimation';
 import { useKScan } from './hooks/useKScan';
+import { saveScan } from './services/library';
 import { AnalysisCard } from './components/AnalysisCard';
 import { PerceptionLayer } from './components/PerceptionLayer';
 import { ScanButton } from './components/ScanButton';
@@ -61,6 +65,26 @@ function ErrorToast({ message, onDismiss }) {
   return (
     <Animated.View style={[styles.errorToast, { opacity }]}>
       <Text style={styles.errorToastText}>{message}</Text>
+    </Animated.View>
+  );
+}
+
+function SavedToast({ onDismiss }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    const timer = setTimeout(() => {
+      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        if (onDismiss) onDismiss();
+      });
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [onDismiss, opacity]);
+
+  return (
+    <Animated.View style={[styles.savedToast, { opacity }]}>
+      <Text style={styles.savedToastText}>Saved to Style Library</Text>
     </Animated.View>
   );
 }
@@ -127,17 +151,39 @@ export default function App() {
     retry,
   } = useKScan();
 
-  // Brief HUD overlay that starts when analysis completes (result state) and
-  // dismisses itself — independent of network timing. We do NOT show it during
-  // 'processing' because that's when compression + network is still running.
-  // The overlay fires once we have real metadata to display.
+  const router = useRouter();
+
+  // hasSavedRef: prevents saving the same result twice if the effect re-fires.
+  // Reset to false when a new analysis starts (status → processing).
+  const hasSavedRef = useRef(false);
+  const [savedToast, setSavedToast] = useState(false);
+
+  // statusRef: always-current status value for use inside animation callbacks
+  // where a closure over the useState value would be stale.
+  const statusRef = useRef(status);
+  statusRef.current = status;
+
+  // perceiving: true while the post-result PerceptionLayer (real metadata) is
+  // running. The AnalysisCard is held back until perceiving becomes false.
   const [perceiving, setPerceiving] = useState(false);
+  // procHudKey: bumped each time a new analysis starts so the processing
+  // PerceptionLayer always mounts fresh even on retry.
+  const [procHudKey, setProcHudKey] = useState(0);
+
   const prevStatus = useRef(status);
   useEffect(() => {
     const prev = prevStatus.current;
     prevStatus.current = status;
 
-    // Show the perception HUD exactly once when processing succeeds to result
+    if (status === 'processing') {
+      // New analysis: reset post-result HUD and mount a fresh processing HUD
+      setPerceiving(false);
+      setProcHudKey(k => k + 1);
+      hasSavedRef.current = false; // arm save for the next result
+      return;
+    }
+    // When processing succeeds, briefly show the HUD with real metadata
+    // before revealing the AnalysisCard (the cinematic reveal moment).
     if (prev === 'processing' && status === 'result') {
       setPerceiving(true);
       return;
@@ -147,6 +193,48 @@ export default function App() {
       setPerceiving(false);
     }
   }, [status]);
+
+  // Save each successful scan once to the local Style Library.
+  // Fires when status becomes 'result' (photo and analysis are both populated).
+  // hasSavedRef prevents duplicate saves if the effect re-runs before dismiss.
+  useEffect(() => {
+    if (status !== 'result' || !photo?.uri || !analysis || hasSavedRef.current) return;
+    hasSavedRef.current = true;
+    let live = true;
+    saveScan({ photoUri: photo.uri, analysis }).then(saved => {
+      if (live && saved) setSavedToast(true);
+    });
+    return () => { live = false; };
+  }, [status, photo, analysis]);
+
+  // Android hardware back button — handle non-modal screens where React
+  // Native's default behavior would exit the app instead of resetting state.
+  // The result Modal already handles back via onRequestClose, so we only need
+  // to intercept the states that render plain screens (no Modal).
+  useEffect(() => {
+    const onBack = () => {
+      // Block back during active analysis: aborting here would leave the
+      // network request orphaned and the state machine in an undefined position.
+      if (status === 'processing') return true;
+      // Block back during the brief cinematic HUD reveal (< 1s window).
+      if (status === 'result' && perceiving) return true;
+      // result + !perceiving: AnalysisCard Modal handles back via onRequestClose.
+      if (status === 'result') return false;
+      // preview: discard the captured photo and return to camera.
+      if (status === 'preview') { retake(); return true; }
+      // non-fashion: return to camera without treating it as an error.
+      if (status === 'non-fashion') { dismissResult(); return true; }
+      // error: return to camera (retake clears state; dismissResult if no photo).
+      if (status === 'error') {
+        if (photo) { retake(); } else { dismissResult(); }
+        return true;
+      }
+      // idle / capturing: allow default (exit app or navigate back).
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [status, perceiving, photo, retake, dismissResult]);
 
   const scanAnim = useScanAnimation(status === 'processing');
 
@@ -237,6 +325,17 @@ export default function App() {
             </View>
           </SafeAreaView>
 
+          {status === 'idle' && (
+            <TouchableOpacity
+              testID="library-button"
+              style={styles.libraryButton}
+              onPress={() => router.push('/library')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.libraryButtonText}>LIBRARY</Text>
+            </TouchableOpacity>
+          )}
+
           {renderViewfinder(false)}
 
           <View style={styles.bottomBar}>
@@ -304,10 +403,10 @@ export default function App() {
       return (
         <View style={styles.actionsContainer}>
           <View style={styles.nonFashionPanel}>
-            <Text style={styles.nonFashionTitle}>Not a Fashion Item</Text>
+            <Text style={styles.nonFashionTitle}>NO FASHION SIGNAL DETECTED</Text>
             <Text style={styles.nonFashionBody}>
               {nonFashionMessage ||
-                "K-Scan is designed for clothing, shoes, and accessories. Point the camera at a garment or outfit."}
+                "Point K-SCAN at apparel, footwear, or accessories and scan again."}
             </Text>
           </View>
           <ActionButton label="Scan Again" onPress={dismissResult} />
@@ -369,6 +468,24 @@ export default function App() {
       <StatusBar style="light" />
       {renderContent()}
 
+      {/* Processing HUD: shows immediately when analysis starts, placeholder labels */}
+      {status === 'processing' && (
+        <PerceptionLayer
+          key={procHudKey}
+          metadata={null}
+          onComplete={() => {
+            // If result arrived and unmounted this before animation finished,
+            // statusRef guards against calling setProcHudKey unnecessarily.
+            if (statusRef.current === 'processing') {
+              setProcHudKey(k => k + 1);
+            }
+          }}
+        />
+      )}
+
+      {savedToast && <SavedToast onDismiss={() => setSavedToast(false)} />}
+
+      {/* Post-result HUD: briefly shows real metadata before AnalysisCard slides up */}
       {status === 'result' && perceiving && (
         <PerceptionLayer
           metadata={analysis?.metadata ?? EMPTY_METADATA}
@@ -679,5 +796,43 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyStrong,
     color: COLORS.errorSoft,
     textAlign: 'center',
+  },
+  // "Saved to Style Library" toast — bottom of screen, above PerceptionLayer
+  savedToast: {
+    position: 'absolute',
+    bottom: 96,
+    left: LAYOUT.screenPadding,
+    right: LAYOUT.screenPadding,
+    backgroundColor: TOAST.backgroundColor,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: TOAST.borderRadius,
+    paddingVertical: TOAST.paddingVertical,
+    paddingHorizontal: TOAST.paddingHorizontal,
+    alignItems: 'center',
+    zIndex: 55,
+    elevation: 55,
+  },
+  savedToastText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.success,
+  },
+  // Library entry button — top-right of camera screen
+  libraryButton: {
+    position: 'absolute',
+    top: LAYOUT.safeTop + SPACING.lg,
+    right: LAYOUT.screenPadding,
+    zIndex: 30,
+    elevation: 30,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(12, 15, 21, 0.82)',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  libraryButtonText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
   },
 });

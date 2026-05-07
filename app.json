@@ -6,6 +6,12 @@
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090b"
+    },
     "plugins": [
       [
         "expo-camera",
@@ -24,7 +30,8 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#06070A"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a0a2e"
       }
     },
     "ios": {

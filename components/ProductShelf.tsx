@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,12 @@ import {
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 export interface Product {
-  id: string;
-  name: string;
-  retailer: string;
-  price: string;
-  imageUrl: string;
-  productUrl: string;
+  id?: string;
+  name?: string;
+  retailer?: string;
+  price?: string;
+  imageUrl?: string | null;
+  productUrl?: string | null;
 }
 
 interface ProductShelfProps {
@@ -26,7 +26,17 @@ interface ProductShelfProps {
 const CARD_WIDTH = 128;
 
 export function ProductShelf({ products }: ProductShelfProps) {
+  const [linkErrorVisible, setLinkErrorVisible] = useState(false);
+
   if (!products || products.length === 0) return null;
+
+  const handleLinkPress = (url: string | null | undefined) => {
+    if (!url) return;
+    Linking.openURL(url).catch(() => {
+      setLinkErrorVisible(true);
+      setTimeout(() => setLinkErrorVisible(false), 2000);
+    });
+  };
 
   return (
     <View testID="product-shelf" style={styles.container}>
@@ -36,26 +46,40 @@ export function ProductShelf({ products }: ProductShelfProps) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {products.map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            style={styles.card}
-            onPress={() => Linking.openURL(p.productUrl).catch(() => null)}
-            activeOpacity={0.78}
-          >
-            <Image
-              source={{ uri: p.imageUrl }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-            <View style={styles.cardBody}>
-              <Text style={styles.name} numberOfLines={2}>{p.name}</Text>
-              <Text style={styles.retailer}>{p.retailer}</Text>
-              <Text style={styles.price}>{p.price}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {products.map((p, i) => {
+          const hasLink = !!p.productUrl;
+          return (
+            <TouchableOpacity
+              key={p.id ?? String(i)}
+              style={[styles.card, !hasLink && styles.cardNoLink]}
+              onPress={() => handleLinkPress(p.productUrl)}
+              activeOpacity={hasLink ? 0.78 : 1}
+            >
+              {p.imageUrl ? (
+                <Image
+                  source={{ uri: p.imageUrl }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.image, styles.imagePlaceholder]} />
+              )}
+              <View style={styles.cardBody}>
+                <Text style={styles.name} numberOfLines={2}>
+                  {p.name || 'Unknown Product'}
+                </Text>
+                <Text style={styles.retailer}>
+                  {(p.retailer || 'Retailer unavailable').toUpperCase()}
+                </Text>
+                <Text style={styles.price}>{p.price || 'Price unavailable'}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
+      {linkErrorVisible && (
+        <Text style={styles.linkError}>LINK UNAVAILABLE</Text>
+      )}
     </View>
   );
 }
@@ -80,9 +104,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSoft,
     overflow: 'hidden',
   },
+  cardNoLink: {
+    opacity: 0.65,
+  },
   image: {
     width: CARD_WIDTH,
     height: CARD_WIDTH,
+  },
+  imagePlaceholder: {
+    backgroundColor: COLORS.bgElevated,
   },
   cardBody: {
     padding: SPACING.sm,
@@ -105,5 +135,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600' as const,
     color: COLORS.accent,
+  },
+  linkError: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.errorSoft,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
   },
 });

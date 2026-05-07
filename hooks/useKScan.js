@@ -3,6 +3,10 @@ import * as Haptics from 'expo-haptics';
 import { analyzeImage } from '../services/api';
 import { compressForUpload } from '../services/imageUtils';
 
+// Minimum time to stay in 'processing' so the PerceptionLayer HUD has time to
+// complete its entry animation (~730ms) before the result card appears.
+const MIN_ANALYSIS_MS = 600;
+
 const VALID_TRANSITIONS = {
   idle: ['capturing'],
   capturing: ['preview', 'error'],
@@ -84,8 +88,19 @@ export function useKScan() {
       setAnalysis(null);
 
       try {
+        const processingStart = Date.now();
+
         const compressed = await compressForUpload(photo.uri);
         const data = await analyzeImage(compressed);
+
+        // Enforce minimum HUD display time so PerceptionLayer completes its entry
+        // animation before we transition to result. Only effective for very fast
+        // responses (< MIN_ANALYSIS_MS); longer requests are unaffected.
+        const elapsed = Date.now() - processingStart;
+        if (elapsed < MIN_ANALYSIS_MS) {
+          await new Promise(r => setTimeout(r, MIN_ANALYSIS_MS - elapsed));
+        }
+
         if (!isMounted.current) return;
 
         if (data.type === 'non-fashion') {

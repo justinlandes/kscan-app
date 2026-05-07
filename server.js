@@ -11,11 +11,17 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-4-scout';
 const USE_OPENROUTER =
   process.env.USE_OPENROUTER === 'true' && !!OPENROUTER_API_KEY;
+const ALLOW_DEV_FALLBACK = process.env.ALLOW_DEV_FALLBACK === 'true';
+// Gate verbose per-request logs (body details, raw AI text) behind this flag.
+// Set KSCAN_DEBUG=true in .env for local debugging; leave unset in production.
+const DEBUG = process.env.KSCAN_DEBUG === 'true';
 
-console.log('[K-SCAN] USE_OPENROUTER:', USE_OPENROUTER);
-console.log('[K-SCAN] OPENROUTER_MODEL:', OPENROUTER_MODEL);
-console.log('[K-SCAN] has OPENROUTER_API_KEY:', !!OPENROUTER_API_KEY);
-console.log('[K-SCAN] has GEMINI_API_KEY:', !!GEMINI_API_KEY);
+console.log('[K-SCAN] Startup config:');
+console.log('[K-SCAN]   has GEMINI_API_KEY    :', !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 0);
+console.log('[K-SCAN]   has OPENROUTER_API_KEY:', !!process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY.length > 0);
+console.log('[K-SCAN]   USE_OPENROUTER        :', process.env.USE_OPENROUTER);
+console.log('[K-SCAN]   OPENROUTER_MODEL      :', OPENROUTER_MODEL);
+console.log('[K-SCAN]   ALLOW_DEV_FALLBACK    :', process.env.ALLOW_DEV_FALLBACK ?? 'unset');
 
 const DEV_FALLBACK = {
   result: '[DEV FALLBACK] Gemini unavailable. This is a stub response for UI testing.',
@@ -448,10 +454,10 @@ Silhouette: [e.g. Oversized, Fitted, Layered]`;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN }));
 
-// Body size: 10 MB hard cap. Raw image from expo-image-manipulator at 1024px
-// JPEG quality 0.7 is ~200–400 KB base64-encoded (~1.3× raw), so 10 MB provides
-// a 20× safety margin while preventing abuse.
-app.use(express.json({ limit: '10mb' }));
+// Body size: 15 MB hard cap. Raw image from expo-image-manipulator at 1024px
+// JPEG quality 0.7 is ~200–400 KB base64-encoded (~1.3× raw), so 15 MB provides
+// ample headroom while preventing abuse.
+app.use(express.json({ limit: '15mb' }));
 
 function extractImageParts(imageInput) {
   if (!imageInput || typeof imageInput !== 'string') {
@@ -513,10 +519,9 @@ async function callOpenRouter(mimeType, data) {
     clearTimeout(timeout);
     const json = await res.json();
     console.log('[K-SCAN] OpenRouter status:', res.status);
-    console.log('[K-SCAN] OpenRouter full response:', JSON.stringify(json));
     if (!res.ok) throw new Error(json?.error?.message || `OpenRouter error: ${res.status}`);
     const rawText = json?.choices?.[0]?.message?.content?.trim() || '';
-    console.log('[K-SCAN] OpenRouter rawText:', JSON.stringify(rawText));
+    if (DEBUG) console.log('[K-SCAN] OpenRouter rawText:', JSON.stringify(rawText));
     if (!rawText) return null;
     const nonFashion = checkNonFashion(rawText);
     if (nonFashion) return { type: 'non-fashion', message: nonFashion };
@@ -530,13 +535,24 @@ async function callOpenRouter(mimeType, data) {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  if (process.env.NODE_ENV === 'production') {
+    return res.json({ ok: true });
+  }
+  return res.json({
+    ok: true,
+    service: 'kscan-backend',
+    hasGeminiKey: !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 0,
+    hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY.length > 0,
+    useOpenRouter: USE_OPENROUTER,
+    allowDevFallback: ALLOW_DEV_FALLBACK,
+  });
 });
 
 // ── Request validation helpers ────────────────────────────────────────────────
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
-// Base64-encoded limit: 10 MB raw ≈ 13.3 MB base64. Reject anything larger.
-const MAX_BASE64_BYTES = 14 * 1024 * 1024; // 14 MB base64 character budget
+// Base64-encoded limit: 15 MB raw ≈ 20 MB base64. Express 15 MB body limit is
+// the effective cap; this validator catches malformed requests that bypass it.
+const MAX_BASE64_BYTES = 20 * 1024 * 1024; // 20 MB base64 character budget
 
 function validateImageInput(image) {
   if (!image || typeof image !== 'string') {
@@ -558,9 +574,11 @@ function validateImageInput(image) {
 app.post('/api/analyze', async (req, res) => {
   try {
     console.log('[K-SCAN] /api/analyze hit');
-    console.log('[K-SCAN] body keys:', Object.keys(req.body || {}));
-    console.log('[K-SCAN] image type:', typeof req.body?.image);
-    console.log('[K-SCAN] image length:', req.body?.image?.length || 0);
+    if (DEBUG) {
+      console.log('[K-SCAN] body keys:', Object.keys(req.body || {}));
+      console.log('[K-SCAN] image type:', typeof req.body?.image);
+      console.log('[K-SCAN] image length:', req.body?.image?.length || 0);
+    }
 
     const { image } = req.body;
 
@@ -575,8 +593,10 @@ app.post('/api/analyze', async (req, res) => {
 
     const { mimeType, data } = extractImageParts(image);
 
-    console.log('[K-SCAN] extracted mimeType:', mimeType);
-    console.log('[K-SCAN] extracted data length:', data?.length || 0);
+    if (DEBUG) {
+      console.log('[K-SCAN] extracted mimeType:', mimeType);
+      console.log('[K-SCAN] extracted data length:', data?.length || 0);
+    }
 
     if (USE_OPENROUTER) {
       console.log('[K-SCAN] Provider: OpenRouter');
@@ -588,15 +608,18 @@ app.post('/api/analyze', async (req, res) => {
         }
         return res.status(200).json({ ...orResult, products: matchProducts(orResult.metadata) });
       }
-      console.warn('[K-SCAN] OpenRouter returned no text, using dev fallback');
-      return res.status(200).json(DEV_FALLBACK);
+      console.warn('[K-SCAN] OpenRouter returned no text');
+      console.log('[K-SCAN] DEV_FALLBACK branch: OPENROUTER_FAILED');
+      if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+      return res.status(503).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
     }
 
     console.log('[K-SCAN] Provider: Gemini');
     if (!GEMINI_API_KEY) {
       console.error('[K-SCAN] Missing GEMINI_API_KEY');
-      console.warn('[K-SCAN] Using dev fallback response');
-      return res.status(200).json(DEV_FALLBACK);
+      console.log('[K-SCAN] DEV_FALLBACK branch: GEMINI_KEY_MISSING');
+      if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+      return res.status(503).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
     }
 
     const geminiUrl =
@@ -632,14 +655,15 @@ app.post('/api/analyze', async (req, res) => {
     if (!geminiRes.ok) {
       const message = json?.error?.message || `Gemini API error: ${geminiRes.status}`;
       console.error('[K-SCAN] Gemini error:', message);
-      console.warn('[K-SCAN] Using dev fallback response');
-      return res.status(200).json(DEV_FALLBACK);
+      console.log('[K-SCAN] DEV_FALLBACK branch: GEMINI_CALL_FAILED');
+      if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+      return res.status(503).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
     }
 
     const textPart = json?.candidates?.[0]?.content?.parts?.[0];
     const rawText = typeof textPart?.text === 'string' ? textPart.text.trim() : '';
 
-    console.log('[K-SCAN] rawText:', JSON.stringify(rawText));
+    if (DEBUG) console.log('[K-SCAN] rawText:', JSON.stringify(rawText));
 
     if (rawText) {
       const nonFashion = checkNonFashion(rawText);
@@ -681,10 +705,9 @@ app.post('/api/analyze', async (req, res) => {
       });
     }
     console.error('[K-SCAN] Server error message:', error?.message);
-    console.error('[K-SCAN] Server error stack:', error?.stack);
-    console.error('[K-SCAN] Server error:', error);
-    console.warn('[K-SCAN] Using dev fallback response');
-    return res.status(200).json(DEV_FALLBACK);
+    console.log('[K-SCAN] DEV_FALLBACK branch: OUTER_SERVER_EXCEPTION');
+    if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+    return res.status(500).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
   }
 });
 

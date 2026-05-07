@@ -26,7 +26,10 @@
 # TIMING:
 #   Capture → preview:    < 1 s
 #   Preview → processing: < 0.5 s (tap only)
-#   Processing → result:  5-15 s (OpenRouter inference) + 640 ms animation
+#   Processing → result:  5-15 s (OpenRouter inference)
+#                         + 600 ms min enforced delay (useKScan)
+#                         + 730 ms processing HUD (PerceptionLayer)
+#                         + 730 ms result HUD (PerceptionLayer with real metadata)
 #   Total assertion wait: 30 s (covers worst-case cold-start inference)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -44,11 +47,12 @@ appId: com.kscanai.app
     var res;
     try { res = http.get(healthUrl); } catch (e) { throw new Error('server.js unreachable at ' + healthUrl + ' — start it before running Test 3'); }
     if (res.statusCode !== 200) {
-      throw new Error('server.js health check failed — start it before running Test 3');
+      throw new Error('server.js health check failed (HTTP ' + res.statusCode + ') — start it before running Test 3');
     }
-    output.ok = JSON.parse(res.body).status;
+    // Health endpoint returns { ok: true, ... } in dev, { ok: true } in prod.
+    output.healthy = JSON.parse(res.body).ok === true;
 
-- assertTrue: ${output.ok == 'ok'}
+- assertTrue: ${output.healthy}
 
 # ════════════════════════════════════════════════════════════════════════════
 # STEP 1 — Fresh launch, arrive at camera

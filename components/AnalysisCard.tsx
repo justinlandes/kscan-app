@@ -157,7 +157,10 @@ export function AnalysisCard({ result, metadata, products = [], onDismiss }: Ana
                 </Animated.View>
               </View>
 
-              {products.length > 0 ? <ProductShelf products={products} /> : null}
+              {products.length > 0
+                ? <ProductShelf products={products} />
+                : <Text style={styles.noMatchNote}>No catalog matches found.</Text>
+              }
 
               <TouchableOpacity style={styles.cta} onPress={runExit} activeOpacity={0.86}>
                 <Text style={styles.ctaText}>Scan Again</Text>
@@ -234,6 +237,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: SPACING.sm,
     marginTop: SPACING.xl,
+  },
+  noMatchNote: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: COLORS.textTertiary,
+    textAlign: 'center' as const,
+    marginTop: SPACING.xl,
+    letterSpacing: 0.4,
   },
   cta: {
     width: '100%',

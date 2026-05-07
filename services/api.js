@@ -28,6 +28,27 @@ function resolveBaseUrl() {
   return 'http://localhost:3001';
 }
 
+// Resolved once at module load — log it once for easy debugging
+const BASE_URL = resolveBaseUrl();
+if (typeof __DEV__ !== 'undefined' && __DEV__) {
+  console.log('[K-SCAN] API_BASE_URL:', BASE_URL);
+}
+
+/**
+ * Normalize a raw product from the backend into a safe shape for ProductShelf.
+ * Handles alternative field names and missing fields without crashing.
+ */
+function normalizeProduct(p, i) {
+  return {
+    id: String(p.id ?? p._id ?? i),
+    name: p.name ?? p.title ?? 'Unknown Product',
+    retailer: p.retailer ?? p.brand ?? 'Retailer unavailable',
+    price: p.price ?? 'Price unavailable',
+    imageUrl: p.imageUrl ?? p.image_url ?? p.image ?? null,
+    productUrl: p.productUrl ?? p.product_url ?? p.url ?? p.purchaseUrl ?? null,
+  };
+}
+
 /**
  * POST image to /api/analyze.
  * Returns one of:
@@ -36,12 +57,11 @@ function resolveBaseUrl() {
  * Throws on network failure, server error, or timeout.
  */
 export async function analyzeImage(base64) {
-  const base = resolveBaseUrl();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ANALYZE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${base}/api/analyze`, {
+    const response = await fetch(`${BASE_URL}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64 }),
@@ -57,9 +77,23 @@ export async function analyzeImage(base64) {
       throw new Error(`Server returned an unreadable response (${response.status}).`);
     }
 
+    // Log raw response once in dev for debugging
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log('[K-SCAN] raw response:', JSON.stringify(data));
+    }
+
     if (!response.ok) {
-      // Server sent a structured error message — surface it
-      throw new Error(data?.result || `Server error (${response.status}). Please try again.`);
+      // Structured backend failure (e.g. 503 with { status:'FAILED', message:'...' })
+      if (data?.status === 'FAILED') {
+        throw new Error(
+          'STYLE-PARSE COULD NOT COMPLETE\n' +
+          (data.message || 'The AI provider did not return a valid read.')
+        );
+      }
+      // Generic server error — prefer the message field, then result, then fallback
+      throw new Error(
+        data?.message || data?.result || `Server error (${response.status}). Please try again.`
+      );
     }
 
     // Non-fashion: return a distinct result type so the UI can show a tailored message
@@ -70,17 +104,32 @@ export async function analyzeImage(base64) {
       };
     }
 
+    // Support multiple possible product array keys from backend
+    const rawProducts =
+      data.products ??
+      data.recommended_products ??
+      data.matches ??
+      data.items ??
+      data.results ??
+      [];
+
     return {
       type: 'fashion',
       result: data.result ?? '',
       metadata: data.metadata ?? { category: '', color: '', silhouette: '' },
-      products: Array.isArray(data.products) ? data.products : [],
+      products: Array.isArray(rawProducts) ? rawProducts.map(normalizeProduct) : [],
     };
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
       throw new Error(
         'Analysis timed out. Check your Wi-Fi and make sure the K-Scan server is running.'
+      );
+    }
+    // Network / connection failure (fetch throws TypeError for unreachable hosts)
+    if (err instanceof TypeError) {
+      throw new Error(
+        'CONNECTION INTERRUPTED\nK-SCAN could not reach the Style-Parse engine.'
       );
     }
     throw err;
