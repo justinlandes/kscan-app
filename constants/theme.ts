@@ -1,49 +1,70 @@
+import { Platform } from 'react-native';
+
 export const COLORS = {
-  bg: '#06070A',
-  bgElevated: '#0C0F15',
-  surface: 'rgba(12, 15, 21, 0.88)',
-  surfaceStrong: 'rgba(16, 21, 29, 0.94)',
-  surfaceSoft: 'rgba(255, 255, 255, 0.08)',
+  // ── Backgrounds ──────────────────────────────────────────────────────────────
+  bg:            '#0C0F15',                     // Obsidian
+  bgElevated:    '#131720',                     // lifted obsidian
+  surface:       'rgba(20, 24, 32, 0.86)',      // card/glass surface
+  surfaceStrong: 'rgba(26, 31, 46, 0.92)',      // elevated glass
+  surfaceSoft:   'rgba(255, 255, 255, 0.06)',   // very subtle tint
+
+  // ── Absolute ─────────────────────────────────────────────────────────────────
   white: '#FFFFFF',
   black: '#000000',
-  textPrimary: '#F8F7F4',
-  textSecondary: '#C7C3BC',
-  textTertiary: '#8A847A',
-  textInverse: '#090B10',
-  accent: '#F1E5C9',
-  accentSoft: 'rgba(241, 229, 201, 0.18)',
-  accentGlow: 'rgba(241, 229, 201, 0.28)',
-  border: 'rgba(255, 255, 255, 0.12)',
-  borderStrong: 'rgba(255, 255, 255, 0.18)',
-  chipBorder: 'rgba(255, 255, 255, 0.14)',
-  cardBg: 'rgba(10, 13, 19, 0.70)',
-  cardBorder: 'rgba(255, 255, 255, 0.16)',
-  backdrop: 'rgba(3, 5, 9, 0.72)',
-  overlay: 'rgba(0, 0, 0, 0.30)',
-  error: '#FF655B',
-  errorSoft: '#FFC3BC',
-  success: '#D9F6D2',
-  warning: '#F6DE8D',
+
+  // ── Text ─────────────────────────────────────────────────────────────────────
+  textPrimary:   '#E5E7EB',   // soft chrome white
+  textSecondary: '#8C93A3',   // muted chrome
+  textTertiary:  '#6B7280',   // deep muted
+  textInverse:   '#090B10',   // dark text on gold/light surfaces
+
+  // ── Accent — Champagne Gold ───────────────────────────────────────────────────
+  accent:     '#D6B36A',                        // champagne gold
+  accentSoft: 'rgba(214, 179, 106, 0.12)',
+  accentGlow: 'rgba(214, 179, 106, 0.22)',
+
+  // ── AR signals ───────────────────────────────────────────────────────────────
+  arPurple: '#8B5CF6',
+  arBlue:   '#3B82F6',
+
+  // ── Chrome borders ────────────────────────────────────────────────────────────
+  border:       '#2A2F3A',                      // chrome
+  borderStrong: 'rgba(214, 179, 106, 0.35)',    // gold highlight
+  chipBorder:   '#2A2F3A',                      // chrome chip border
+
+  // ── Cards ────────────────────────────────────────────────────────────────────
+  cardBg:     'rgba(20, 24, 32, 0.86)',
+  cardBorder: '#2A2F3A',
+
+  // ── Utility ──────────────────────────────────────────────────────────────────
+  backdrop: 'rgba(4, 6, 10, 0.78)',
+  overlay:  'rgba(0, 0, 0, 0.30)',
+
+  // ── Status ───────────────────────────────────────────────────────────────────
+  error:     '#FF6B6B',
+  errorSoft: '#FFAAAA',
+  success:   '#56D364',
+  warning:   '#F4D27A',
 };
 
 export const colors = COLORS;
 
 export const SPACING = {
   xxs: 2,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  xs:  4,
+  sm:  8,
+  md:  12,
+  lg:  16,
+  xl:  24,
   xxl: 32,
   xxxl: 40,
 };
 
 export const RADIUS = {
-  sm: 12,
-  md: 16,
-  lg: 24,
-  xl: 28,
+  sm:   12,
+  md:   16,
+  lg:   24,
+  xl:   28,
   pill: 999,
 };
 
@@ -66,7 +87,7 @@ export const TYPOGRAPHY = {
     fontSize: 11,
     fontWeight: '600' as const,
     letterSpacing: 2.6,
-    color: COLORS.textTertiary,
+    color: COLORS.accent,
   },
   headline: {
     fontSize: 24,
@@ -82,7 +103,7 @@ export const TYPOGRAPHY = {
   subtitle: {
     fontSize: 13,
     fontWeight: '500' as const,
-    letterSpacing: 2.2,
+    letterSpacing: 2.4,
     color: COLORS.textSecondary,
     textTransform: 'uppercase' as const,
   },
@@ -109,7 +130,7 @@ export const TYPOGRAPHY = {
     fontSize: 10,
     fontWeight: '600' as const,
     color: COLORS.textTertiary,
-    letterSpacing: 2.2,
+    letterSpacing: 2.4,
     textTransform: 'uppercase' as const,
   },
   chipValue: {
@@ -121,106 +142,108 @@ export const TYPOGRAPHY = {
   cta: {
     fontSize: 14,
     fontWeight: '600' as const,
-    letterSpacing: 2.2,
+    letterSpacing: 2.4,
     textTransform: 'uppercase' as const,
   },
 };
 
 export const chip = {
-  minHeight: 56,
-  minWidth: 104,
+  minHeight:        54,
+  minWidth:         104,
   paddingHorizontal: SPACING.lg,
-  paddingVertical: SPACING.sm,
-  borderRadius: RADIUS.pill,
-  borderWidth: 1,
-  borderColor: COLORS.chipBorder,
-  backgroundColor: COLORS.surfaceSoft,
+  paddingVertical:   SPACING.sm,
+  borderRadius:      RADIUS.pill,
+  borderWidth:       1,
+  borderColor:       COLORS.chipBorder,
+  backgroundColor:   COLORS.surface,
   labelMarginBottom: SPACING.xs,
 };
 
 export const card = {
-  borderRadius: RADIUS.xl,
+  borderRadius:   RADIUS.xl,
   paddingHorizontal: SPACING.xl,
-  paddingVertical: SPACING.xl,
-  blurIntensity: 72,
-  borderWidth: 1,
-  gripWidth: 48,
-  gripHeight: 4,
-  ctaMinHeight: 52,
-  shadowColor: COLORS.black,
-  shadowOpacity: 0.28,
-  shadowRadius: 24,
-  shadowOffset: { width: 0, height: 10 },
+  paddingVertical:   SPACING.xl,
+  blurIntensity:  72,
+  borderWidth:    1,
+  gripWidth:      48,
+  gripHeight:     4,
+  ctaMinHeight:   52,
+  shadowColor:    COLORS.black,
+  shadowOpacity:  0.32,
+  shadowRadius:   28,
+  shadowOffset:   { width: 0, height: 12 },
 };
 
 export const MOTION = {
   enterDuration: 520,
-  exitDuration: 280,
+  exitDuration:  280,
   microDuration: 220,
-  chipStagger: 90,
+  chipStagger:   90,
   pulseDuration: 1200,
   easing: { x1: 0.2, y1: 0.9, x2: 0.2, y2: 1.0 },
 };
 
 export const viewfinder = {
-  width: '72%' as const,
-  aspectRatio: 3 / 4,
-  cornerArmLength: 34,
-  cornerStroke: 2,
-  cornerInset: SPACING.xxl,
-  scanningLineHeight: 2,
+  width:              '72%' as const,
+  aspectRatio:        3 / 4,
+  cornerArmLength:    28,
+  cornerStroke:       1.5,
+  cornerInset:        SPACING.xxl,
+  scanningLineHeight: 1.5,
   scanningLineOffset: 90,
   scanTravelDistance: 280,
-  scanningLineColor: COLORS.accent,
-  frameGlow: COLORS.accentGlow,
+  scanningLineColor:  COLORS.accent,
+  frameGlow:          COLORS.accentGlow,
 };
 
 export const BUTTONS = {
-  minWidth: 196,
-  height: 52,
+  minWidth:          196,
+  height:            54,
   horizontalPadding: SPACING.xl,
   primaryBackground: COLORS.accent,
-  primaryText: COLORS.textInverse,
-  secondaryBorder: COLORS.borderStrong,
-  secondaryText: COLORS.textSecondary,
-  tertiaryText: COLORS.textTertiary,
+  primaryText:       COLORS.textInverse,
+  secondaryBorder:   COLORS.border,
+  secondaryText:     COLORS.textSecondary,
+  tertiaryText:      COLORS.textTertiary,
 };
 
 export const LAYOUT = {
-  screenPadding: SPACING.xl,
-  safeTop: SPACING.md,
-  previewHeight: 400,
-  previewRadius: RADIUS.xl,
-  actionsMinHeight: 156,
+  screenPadding:             SPACING.xl,
+  // Platform-aware: covers Pixel 8 Pro punch-hole (≈50dp) on Android;
+  // standard notch inset on iOS.
+  safeTop:                   Platform.select({ android: 56, ios: 44 }) ?? 44,
+  previewHeight:             400,
+  previewRadius:             RADIUS.xl,
+  actionsMinHeight:          160,
   cameraFooterPaddingBottom: SPACING.xxl,
-  cameraFooterPaddingTop: SPACING.lg,
-  modalBottomPadding: SPACING.xxxl,
+  cameraFooterPaddingTop:    SPACING.lg,
+  modalBottomPadding:        SPACING.xxxl,
 };
 
 export const TOAST = {
-  top: 100,
-  borderRadius: RADIUS.md,
+  top:              108,
+  borderRadius:     RADIUS.md,
   paddingHorizontal: 20,
-  paddingVertical: SPACING.lg,
-  backgroundColor: 'rgba(9, 12, 18, 0.92)',
+  paddingVertical:   SPACING.lg,
+  backgroundColor:  'rgba(9, 12, 18, 0.94)',
 };
 
 export const LOADING = {
-  indicatorSize: 'large' as const,
-  panelRadius: RADIUS.lg,
-  panelPadding: SPACING.lg,
-  panelBackground: COLORS.surfaceSoft,
+  indicatorSize:   'large' as const,
+  panelRadius:     RADIUS.lg,
+  panelPadding:    SPACING.xl,
+  panelBackground: COLORS.surface,
 };
 
 export const CAPTURE_BUTTON = {
-  touchSize: 84,
-  outerSize: 80,
-  innerSize: 62,
+  touchSize:   84,
+  outerSize:   80,
+  innerSize:   62,
   borderWidth: 2,
 };
 
 export const api = {
-  retryPorts: [8081, 8082],
+  retryPorts:      [8081, 8082],
   healthTimeoutMs: 1200,
-  timeoutMs: 8000,
+  timeoutMs:       8000,
 };

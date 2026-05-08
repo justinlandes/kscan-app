@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     color: BUTTONS.primaryText,
   },
   secondaryButton: {
-    backgroundColor: COLORS.surfaceSoft,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: BUTTONS.secondaryBorder,
   },
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: viewfinder.cornerArmLength,
     height: viewfinder.cornerArmLength,
-    borderColor: COLORS.textPrimary,
+    borderColor: COLORS.accent,
   },
   topLeft: {
     top: 0,
@@ -710,7 +710,10 @@ const styles = StyleSheet.create({
   previewHeader: {
     paddingHorizontal: LAYOUT.screenPadding,
     paddingTop: SPACING.lg,
-    paddingBottom: SPACING.sm,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    marginBottom: SPACING.sm,
   },
   previewContainer: {
     flex: 1,
@@ -761,8 +764,9 @@ const styles = StyleSheet.create({
   },
   nonFashionTitle: {
     ...TYPOGRAPHY.bodyStrong,
-    color: COLORS.textPrimary,
+    color: COLORS.accent,
     textAlign: 'center',
+    letterSpacing: 1.6,
   },
   nonFashionBody: {
     ...TYPOGRAPHY.body,
@@ -808,6 +812,8 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
   // Library entry button — top-right of camera screen
+  // top uses LAYOUT.safeTop which is now Platform-aware (56dp Android / 44dp iOS)
+  // to clear the Pixel 8 Pro status-bar + punch-hole cutout (≈50dp).
   libraryButton: {
     position: 'absolute',
     top: LAYOUT.safeTop + SPACING.lg,
@@ -817,12 +823,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(12, 15, 21, 0.82)',
+    backgroundColor: 'rgba(12, 15, 21, 0.88)',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.borderStrong,
   },
   libraryButtonText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: COLORS.accent,
   },
 });

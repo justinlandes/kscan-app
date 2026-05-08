@@ -11,11 +11,11 @@ import {
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 export interface Product {
-  id?: string;
-  name?: string;
-  retailer?: string;
-  price?: string;
-  imageUrl?: string | null;
+  id?:         string;
+  name?:       string;
+  retailer?:   string;
+  price?:      string;
+  imageUrl?:   string | null;
   productUrl?: string | null;
 }
 
@@ -23,7 +23,8 @@ interface ProductShelfProps {
   products: Product[];
 }
 
-const CARD_WIDTH = 128;
+const CARD_WIDTH  = 144;
+const IMAGE_SIZE  = CARD_WIDTH;
 
 export function ProductShelf({ products }: ProductShelfProps) {
   const [linkErrorVisible, setLinkErrorVisible] = useState(false);
@@ -40,7 +41,11 @@ export function ProductShelf({ products }: ProductShelfProps) {
 
   return (
     <View testID="product-shelf" style={styles.container}>
-      <Text style={styles.label}>Shop the Look</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>CATALOG MATCHES</Text>
+        <View style={styles.labelLine} />
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -62,21 +67,29 @@ export function ProductShelf({ products }: ProductShelfProps) {
                   resizeMode="cover"
                 />
               ) : (
-                <View style={[styles.image, styles.imagePlaceholder]} />
+                <View style={[styles.image, styles.imagePlaceholder]}>
+                  <View style={styles.placeholderInner} />
+                </View>
               )}
+
               <View style={styles.cardBody}>
+                {p.retailer ? (
+                  <Text style={styles.retailer} numberOfLines={1}>
+                    {p.retailer.toUpperCase()}
+                  </Text>
+                ) : null}
                 <Text style={styles.name} numberOfLines={2}>
                   {p.name || 'Unknown Product'}
                 </Text>
-                <Text style={styles.retailer}>
-                  {(p.retailer || 'Retailer unavailable').toUpperCase()}
-                </Text>
-                <Text style={styles.price}>{p.price || 'Price unavailable'}</Text>
+                <Text style={styles.price}>{p.price || '—'}</Text>
               </View>
+
+              {hasLink && <View style={styles.linkDot} />}
             </TouchableOpacity>
           );
         })}
       </ScrollView>
+
       {linkErrorVisible && (
         <Text style={styles.linkError}>LINK UNAVAILABLE</Text>
       )}
@@ -88,57 +101,90 @@ const styles = StyleSheet.create({
   container: {
     marginTop: SPACING.xl,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    gap:           SPACING.sm,
+    marginBottom:  SPACING.md,
+  },
   label: {
-    ...TYPOGRAPHY.categoryLabel,
-    textTransform: 'uppercase',
-    marginBottom: SPACING.sm,
+    ...TYPOGRAPHY.sectionLabel,
+    color: COLORS.textTertiary,
+  },
+  labelLine: {
+    flex:            1,
+    height:          1,
+    backgroundColor: COLORS.border,
+    opacity:         0.5,
   },
   scrollContent: {
-    gap: SPACING.sm,
+    gap:            SPACING.md,
+    paddingBottom:  SPACING.xs,
   },
   card: {
-    width: CARD_WIDTH,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceSoft,
-    overflow: 'hidden',
+    width:           CARD_WIDTH,
+    borderRadius:    RADIUS.md,
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+    backgroundColor: COLORS.surface,
+    overflow:        'hidden',
   },
   cardNoLink: {
-    opacity: 0.65,
+    opacity: 0.6,
   },
   image: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH,
+    width:  IMAGE_SIZE,
+    height: IMAGE_SIZE,
   },
   imagePlaceholder: {
-    backgroundColor: COLORS.bgElevated,
+    backgroundColor: COLORS.bg,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  placeholderInner: {
+    width:           32,
+    height:          32,
+    borderRadius:    4,
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+    opacity:         0.4,
   },
   cardBody: {
     padding: SPACING.sm,
-    gap: SPACING.xxs,
-  },
-  name: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: COLORS.textPrimary,
-    lineHeight: 17,
+    gap:     SPACING.xxs,
   },
   retailer: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    letterSpacing: 1.4,
-    color: COLORS.textTertiary,
+    fontSize:      9,
+    fontWeight:    '600' as const,
+    letterSpacing: 1.8,
+    color:         COLORS.textTertiary,
     textTransform: 'uppercase' as const,
   },
+  name: {
+    fontSize:   12,
+    fontWeight: '500' as const,
+    color:      COLORS.textPrimary,
+    lineHeight: 17,
+  },
   price: {
-    fontSize: 13,
+    fontSize:   13,
     fontWeight: '600' as const,
-    color: COLORS.accent,
+    color:      COLORS.accent,
+    marginTop:  SPACING.xxs,
+  },
+  linkDot: {
+    position:        'absolute',
+    top:             SPACING.xs,
+    right:           SPACING.xs,
+    width:           6,
+    height:          6,
+    borderRadius:    3,
+    backgroundColor: COLORS.accent,
+    opacity:         0.7,
   },
   linkError: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.errorSoft,
+    color:     COLORS.errorSoft,
     textAlign: 'center',
     marginTop: SPACING.sm,
   },

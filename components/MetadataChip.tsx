@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, chip } from '../constants/theme';
 
-const EMPTY_VALUE = '\u2014';
+const EMPTY_VALUE = '—';
 
 interface MetadataChipProps {
   label: string;
@@ -33,15 +33,18 @@ export function MetadataChip({ label, value }: MetadataChipProps) {
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: chip.minHeight,
-    minWidth: chip.minWidth,
+    minHeight:         chip.minHeight,
+    minWidth:          chip.minWidth,
     paddingHorizontal: chip.paddingHorizontal,
-    paddingVertical: chip.paddingVertical,
-    borderRadius: chip.borderRadius,
-    borderWidth: chip.borderWidth,
-    borderColor: chip.borderColor,
-    backgroundColor: chip.backgroundColor,
-    justifyContent: 'center',
+    paddingVertical:   chip.paddingVertical,
+    borderRadius:      chip.borderRadius,
+    // Chrome left accent + standard border on remaining sides
+    borderWidth:       chip.borderWidth,
+    borderColor:       chip.borderColor,
+    borderLeftWidth:   2,
+    borderLeftColor:   COLORS.accent,
+    backgroundColor:   chip.backgroundColor,
+    justifyContent:    'center',
   },
   label: {
     ...TYPOGRAPHY.chipLabel,
@@ -50,6 +53,5 @@ const styles = StyleSheet.create({
   value: {
     ...TYPOGRAPHY.chipValue,
     paddingRight: SPACING.xs,
-    color: COLORS.accent,
   },
 });

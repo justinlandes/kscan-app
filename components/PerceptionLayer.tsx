@@ -1,22 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 
-const SNAP = 90;
-const STAGGER = 80;
-const HOLD = 300;
+const SNAP     = 90;
+const STAGGER  = 80;
+const HOLD     = 300;
 const FADE_OUT = 180;
 
-const LABEL_COLOR = '#607070';
-const VALUE_COLOR = '#8ECECE';
+// Chrome slate label / champagne gold value — matches Obsidian & Chrome identity
+const LABEL_COLOR = '#5A6372';
+const VALUE_COLOR = '#D6B36A';
 
 interface Metadata {
-  category?: string;
-  color?: string;
+  category?:  string;
+  color?:     string;
   silhouette?: string;
 }
 
 interface PerceptionLayerProps {
-  metadata?: Metadata;
+  metadata?:  Metadata;
   onComplete: () => void;
 }
 
@@ -26,10 +27,10 @@ function displayValue(value: string | undefined, fallback: string) {
 
 export function PerceptionLayer({ metadata, onComplete }: PerceptionLayerProps) {
   const overlayOpacity = useRef(new Animated.Value(1)).current;
-  const line1Opacity = useRef(new Animated.Value(0)).current;
-  const line2Opacity = useRef(new Animated.Value(0)).current;
-  const line3Opacity = useRef(new Animated.Value(0)).current;
-  const lineAnims = [line1Opacity, line2Opacity, line3Opacity];
+  const line1Opacity   = useRef(new Animated.Value(0)).current;
+  const line2Opacity   = useRef(new Animated.Value(0)).current;
+  const line3Opacity   = useRef(new Animated.Value(0)).current;
+  const lineAnims      = [line1Opacity, line2Opacity, line3Opacity];
 
   useEffect(() => {
     const animation = Animated.sequence([
@@ -50,9 +51,9 @@ export function PerceptionLayer({ metadata, onComplete }: PerceptionLayerProps) 
   }, [line1Opacity, line2Opacity, line3Opacity, onComplete, overlayOpacity]);
 
   const lines = [
-    { label: 'SILHOUETTE', value: displayValue(metadata?.silhouette, 'READING') },
-    { label: 'STYLE', value: displayValue(metadata?.category, 'MAPPING') },
-    { label: 'COLOR', value: displayValue(metadata?.color, 'SAMPLING') },
+    { label: 'SILHOUETTE',   value: displayValue(metadata?.silhouette, 'SCANNING') },
+    { label: 'STYLE SIGNAL', value: displayValue(metadata?.category,   'PARSING')  },
+    { label: 'PALETTE',      value: displayValue(metadata?.color,      'READING')  },
   ];
 
   return (
@@ -64,7 +65,7 @@ export function PerceptionLayer({ metadata, onComplete }: PerceptionLayerProps) 
         {lines.map(({ label, value }, i) => (
           <Animated.View key={label} style={[styles.row, { opacity: lineAnims[i] }]}>
             <Text style={styles.label}>{label}</Text>
-            <Text style={styles.sep}>{'  '}</Text>
+            <Text style={styles.sep}>{'  ·  '}</Text>
             <Text style={styles.value}>{value}</Text>
           </Animated.View>
         ))}
@@ -78,36 +79,37 @@ const MONO = Platform.select({ ios: 'Courier New', android: 'monospace', default
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 50,
-    elevation: 50,
-    backgroundColor: 'rgba(4, 6, 10, 0.86)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    zIndex:          50,
+    elevation:       50,
+    backgroundColor: 'rgba(4, 6, 10, 0.92)',
+    justifyContent:  'center',
+    alignItems:      'center',
   },
   block: {
-    gap: 14,
-    paddingHorizontal: 32,
-    alignItems: 'flex-start',
+    gap:              18,
+    paddingHorizontal: 36,
+    alignItems:       'flex-start',
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems:    'baseline',
   },
   label: {
-    fontFamily: MONO,
-    fontSize: 11,
-    letterSpacing: 2.4,
-    color: LABEL_COLOR,
+    fontFamily:    MONO,
+    fontSize:      10,
+    letterSpacing: 2.8,
+    color:         LABEL_COLOR,
   },
   sep: {
     fontFamily: MONO,
-    fontSize: 11,
-    color: LABEL_COLOR,
+    fontSize:   10,
+    color:      LABEL_COLOR,
+    opacity:    0.4,
   },
   value: {
-    fontFamily: MONO,
-    fontSize: 13,
-    letterSpacing: 2,
-    color: VALUE_COLOR,
+    fontFamily:    MONO,
+    fontSize:      13,
+    letterSpacing: 2.2,
+    color:         VALUE_COLOR,
   },
 });
