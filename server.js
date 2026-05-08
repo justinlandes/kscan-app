@@ -15,6 +15,7 @@ const ALLOW_DEV_FALLBACK = process.env.ALLOW_DEV_FALLBACK === 'true';
 // Gate verbose per-request logs (body details, raw AI text) behind this flag.
 // Set KSCAN_DEBUG=true in .env for local debugging; leave unset in production.
 const DEBUG = process.env.KSCAN_DEBUG === 'true';
+const DEV_PROVIDER_LOGS = process.env.NODE_ENV !== 'production';
 
 console.log('[K-SCAN] Startup config:');
 console.log('[K-SCAN]   has GEMINI_API_KEY    :', !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 0);
@@ -203,6 +204,18 @@ const NORMALIZATION_MAP = {
   draped:      ['flowy', 'relaxed'],
   flared:      ['wide-leg', 'relaxed'],
 
+  // ── Footwear type expansions (missing from original map)
+  slipper:     ['sneakers'],               // closest catalog footwear tag
+  mule:        ['sneakers'],
+  slide:       ['sneakers'],
+  loafer:      ['boots', 'sneakers'],
+  sandal:      ['sneakers'],
+  clog:        ['sneakers'],
+  heel:        ['boots'],
+  pump:        ['boots'],
+  sneaker:     ['sneakers'],               // singular form
+  boot:        ['boots'],                  // singular form
+
   // ── Style mappings: AI aesthetic words → catalog style tags
   sporty:      ['athleisure'],
   athletic:    ['athleisure', 'sporty'],
@@ -217,6 +230,12 @@ const NORMALIZATION_MAP = {
   preppy:      ['classic', 'preppy'],       // preppy already in catalog; belt + suspenders
   dark:        ['grunge', 'streetwear'],
   moody:       ['grunge', 'edgy'],
+
+  // ── Outdoor / adventure aesthetic
+  gorpcore:    ['sporty', 'athleisure'],
+  outdoor:     ['sporty', 'athleisure'],
+  technical:   ['athleisure', 'sporty'],
+  activewear:  ['athleisure', 'sporty'],
 };
 
 // ─── Keyword preprocessing ────────────────────────────────────────────────────
@@ -225,7 +244,15 @@ const NORMALIZATION_MAP = {
 // can apply EXPAND_WEIGHT selectively — originals always score at full weight.
 function buildKeywords(metadata) {
   const originalKeywords = [...new Set(
-    [metadata.category, metadata.color, metadata.silhouette]
+    [
+      metadata.category,
+      metadata.itemType,
+      metadata.item_type,
+      metadata.material,
+      metadata.style,
+      metadata.color,
+      metadata.silhouette,
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()
@@ -434,19 +461,205 @@ function matchProducts(metadata, options = {}) {
   return selected.map(({ product: { tags, ...rest } }) => rest);
 }
 
-const SYSTEM_PROMPT = `You are a high-fashion stylist AI.
+// JSON-first prompt — modern LLMs (Llama 4, GPT-4o, etc.) produce more reliable
+// structured output than the old text-field format. The legacy text format is kept
+// as a fallback inside parseAIResponse for backward compatibility with Gemini.
+const SYSTEM_PROMPT = `You are a high-fashion AI stylist with computer vision.
 
-First, determine if the image contains a fashion item (clothing, shoes, or accessories worn by a person or displayed alone).
+Analyze the image and respond ONLY with a single valid JSON object — no markdown fences, no prose outside the JSON.
 
-If it does NOT contain a fashion item, respond with exactly this format and nothing else:
-NON_FASHION: [one sentence explaining what the image actually contains]
+If the image does NOT contain a fashion item (clothing, footwear, or accessories):
+{"type":"non-fashion","message":"<one sentence describing what the image actually shows>"}
 
-If it DOES contain a fashion item, provide:
-1. A brief, professional style breakdown and one pairing suggestion (2-4 sentences).
-2. Then exactly three lines in this format:
-Category: [e.g. Streetwear, Minimalist, Classic]
-Color: [dominant palette]
-Silhouette: [e.g. Oversized, Fitted, Layered]`;
+If the image DOES contain a fashion item:
+{"type":"fashion","result":"<2-4 sentence professional style breakdown with one pairing suggestion>","metadata":{"category":"<item category e.g. Footwear, Outerwear, Tops, Bottoms, Accessories>","itemType":"<specific item type e.g. slipper, mule, puffer slipper, jacket>","material":"<visible fabric/construction e.g. quilted synthetic nylon, leather, denim>","style":"<primary aesthetic e.g. Casual, Gorpcore, Activewear, Streetwear, Minimalist>","color":"<dominant color palette e.g. Red / Black, Cream, Earth Tones>","silhouette":"<fit or form descriptor e.g. Oversized, Fitted, Relaxed, Slip-on, Mule, Boxy>"}}`;
+
+function aiLog(level, message, details = {}) {
+  if (!DEV_PROVIDER_LOGS) return;
+  const logger = level === 'error' ? console.error : console.warn;
+  logger(message, details);
+}
+
+function previewProviderText(text, max = 1000) {
+  return String(text || '')
+    .replace(/data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+/gi, '[image-base64-redacted]')
+    .slice(0, max);
+}
+
+function collectJsonCandidates(text) {
+  const candidates = [text];
+  if (/^"(?:type|result|metadata|category)"\s*:/i.test(text)) {
+    candidates.push(`{${text}`);
+  }
+  if (/^(?:type|result|metadata|category)"\s*:/i.test(text)) {
+    candidates.push(`{"${text}`);
+  }
+  const fenceRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
+  let fenceMatch;
+  while ((fenceMatch = fenceRegex.exec(text))) {
+    candidates.unshift(fenceMatch[1].trim());
+  }
+
+  const start = text.indexOf('{');
+  if (start !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i += 1) {
+      const char = text[i];
+      if (inString) {
+        escaped = char === '\\' && !escaped;
+        if (char === '"' && !escaped) inString = false;
+        if (char !== '\\') escaped = false;
+        continue;
+      }
+      if (char === '"') inString = true;
+      if (char === '{') depth += 1;
+      if (char === '}') depth -= 1;
+      if (depth === 0) {
+        candidates.push(text.slice(start, i + 1).trim());
+        break;
+      }
+    }
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function firstString(...values) {
+  const found = values.find((value) => typeof value === 'string' && value.trim());
+  return found ? found.trim() : '';
+}
+
+function parseFashionObject(parsed) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+
+  const type = String(parsed.type || parsed.classification || parsed.status || '').toLowerCase();
+  if (type.includes('non-fashion') || type.includes('non_fashion')) {
+    return {
+      type:    'non-fashion',
+      message: firstString(parsed.message, parsed.reason, parsed.description) || 'This does not appear to be a fashion item.',
+    };
+  }
+
+  const metadataSource = parsed.metadata && typeof parsed.metadata === 'object'
+    ? parsed.metadata
+    : parsed;
+  const category = firstString(
+    metadataSource.category,
+    metadataSource.primary_category,
+    metadataSource.item_category,
+    metadataSource.itemType,
+    metadataSource.item_type,
+    metadataSource.product_type,
+  );
+  const itemType = firstString(
+    metadataSource.itemType,
+    metadataSource.item_type,
+    metadataSource.product_type,
+    metadataSource.garment,
+  );
+  const color = firstString(metadataSource.color, metadataSource.colors, metadataSource.palette);
+  const material = firstString(metadataSource.material, metadataSource.fabric, metadataSource.construction);
+  const style = firstString(metadataSource.style, metadataSource.aesthetic);
+  const silhouette = firstString(
+    metadataSource.silhouette,
+    metadataSource.shape,
+    metadataSource.fit,
+    metadataSource.closure,
+  );
+
+  const hasFashionShape =
+    type.includes('fashion') ||
+    parsed.result !== undefined ||
+    parsed.metadata ||
+    category ||
+    itemType ||
+    color ||
+    material ||
+    style ||
+    silhouette;
+
+  if (!hasFashionShape) return null;
+
+  const generatedResult = [
+    itemType || category,
+    color && `${color} color palette`,
+    material && `${material} construction`,
+    style && `${style} styling`,
+    silhouette && `${silhouette} silhouette`,
+  ].filter(Boolean).join(', ');
+
+  return {
+    result: firstString(parsed.result, parsed.analysis, parsed.description, parsed.summary) || generatedResult,
+    metadata: {
+      category,
+      itemType,
+      material,
+      style,
+      color,
+      silhouette,
+    },
+  };
+}
+
+// ── AI response parser — tries JSON first, then fenced JSON, then legacy text format ──
+// This makes the backend resilient to models that wrap JSON in markdown, return
+// prose with JSON embedded, or fall back to the old Category:/Color:/Silhouette: format.
+function parseAIResponse(rawText, context = {}) {
+  if (!rawText || !rawText.trim()) return null;
+
+  const text = rawText.trim();
+
+  const parseFailures = [];
+  for (const candidate of collectJsonCandidates(text)) {
+    try {
+      const parsed = JSON.parse(candidate);
+      const normalized = parseFashionObject(parsed);
+      if (normalized) return normalized;
+    } catch (error) {
+      parseFailures.push({
+        message: error?.message,
+        candidateLength: candidate.length,
+        preview: previewProviderText(candidate, 500),
+      });
+      // not valid JSON — try next candidate
+    }
+  }
+  if (parseFailures.length > 0) {
+    aiLog('warn', '[K-SCAN] AI JSON parse failed for all candidates', {
+      provider: context.provider,
+      attempts: parseFailures.length,
+      firstError: parseFailures[0],
+    });
+  }
+
+  // Attempt 4: legacy text format (Category: / Color: / Silhouette: lines)
+  // Kept for backward compatibility with Gemini and any model that ignores JSON prompt.
+  const nonFashion = checkNonFashion(text);
+  if (nonFashion) return { type: 'non-fashion', message: nonFashion };
+
+  const metadata = parseMetadata(text);
+  if (metadata.category || metadata.color || metadata.silhouette) {
+    return { result: stripMetadataFromResult(text) || text, metadata };
+  }
+
+  // Attempt 5: unstructured prose — use the whole response as the result text.
+  // This ensures a substantive model reply is never silently discarded.
+  if (text.length > 30) {
+    aiLog('warn', '[K-SCAN] No structured fields found in AI response; using full text as result', {
+      provider: context.provider,
+      responseLength: text.length,
+      preview: previewProviderText(text, 500),
+    });
+    return {
+      result:   text,
+      metadata: { category: '', color: '', silhouette: '' },
+    };
+  }
+
+  return null; // genuinely empty
+}
 
 // ── CORS: restrict in production — open for local dev ─────────────────────────
 // For a hosted beta backend, replace '*' with your actual app origin
@@ -493,7 +706,9 @@ function checkNonFashion(text) {
 
 async function callOpenRouter(mimeType, data) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  // 25 s — vision models need more time than text-only requests;
+  // must still leave headroom below the client-side 25 s ANALYZE_TIMEOUT_MS.
+  const timeout = setTimeout(() => controller.abort(), 22000);
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -508,7 +723,7 @@ async function callOpenRouter(mimeType, data) {
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Analyze this garment image and return the requested fashion metadata and result.' },
+              { type: 'text', text: 'Analyze this garment image.' },
               { type: 'image_url', image_url: { url: `data:${mimeType || 'image/jpeg'};base64,${data}` } },
             ],
           },
@@ -517,19 +732,59 @@ async function callOpenRouter(mimeType, data) {
       signal: controller.signal,
     });
     clearTimeout(timeout);
+
+    console.log('[K-SCAN] OpenRouter HTTP status:', res.status);
+
+    if (!res.ok) {
+      let errBody;
+      try { errBody = await res.json(); } catch (_) { errBody = {}; }
+      const errMsg = errBody?.error?.message || errBody?.error || `OpenRouter HTTP ${res.status}`;
+      console.error('[K-SCAN] OpenRouter error response:', JSON.stringify(errBody).slice(0, 400));
+      throw new Error(String(errMsg));
+    }
+
     const json = await res.json();
-    console.log('[K-SCAN] OpenRouter status:', res.status);
-    if (!res.ok) throw new Error(json?.error?.message || `OpenRouter error: ${res.status}`);
-    const rawText = json?.choices?.[0]?.message?.content?.trim() || '';
-    if (DEBUG) console.log('[K-SCAN] OpenRouter rawText:', JSON.stringify(rawText));
-    if (!rawText) return null;
-    const nonFashion = checkNonFashion(rawText);
-    if (nonFashion) return { type: 'non-fashion', message: nonFashion };
-    const metadata = parseMetadata(rawText);
-    const result = stripMetadataFromResult(rawText) || rawText;
-    return { result, metadata };
+    // content may be a string (standard) or array of parts (some providers).
+    const contentRaw = json?.choices?.[0]?.message?.content;
+    const rawText = (
+      typeof contentRaw === 'string'
+        ? contentRaw
+        : Array.isArray(contentRaw)
+          ? contentRaw
+              .map((part) => part?.text ?? part?.content ?? '')
+              .filter(Boolean)
+              .join('\n')
+          : ''
+    ).trim();
+
+    const finishReason = json?.choices?.[0]?.finish_reason ?? 'unknown';
+    console.log(`[K-SCAN] OpenRouter rawText length: ${rawText.length}  finish_reason: ${finishReason}`);
+    if (DEV_PROVIDER_LOGS && DEBUG) console.warn('[K-SCAN] OpenRouter rawText preview:', previewProviderText(rawText, 1000));
+
+    if (!rawText) {
+      console.warn('[K-SCAN] OpenRouter returned empty content. finish_reason:', finishReason,
+        '  model:', OPENROUTER_MODEL,
+        '  usage:', JSON.stringify(json?.usage ?? {}));
+      return null;
+    }
+
+    const parsed = parseAIResponse(rawText, { provider: 'OpenRouter' });
+    if (!parsed) {
+      aiLog('warn', '[K-SCAN] parseAIResponse returned null for non-empty OpenRouter rawText', {
+        provider: 'OpenRouter',
+        responseLength: rawText.length,
+        preview: previewProviderText(rawText, 1000),
+      });
+    }
+    return parsed;
   } catch (err) {
     clearTimeout(timeout);
+    aiLog('error', '[K-SCAN] OpenRouter provider exception', {
+      provider: 'OpenRouter',
+      model: OPENROUTER_MODEL,
+      message: err?.message,
+      name: err?.name,
+    });
     throw err;
   }
 }
@@ -598,26 +853,32 @@ app.post('/api/analyze', async (req, res) => {
       console.log('[K-SCAN] extracted data length:', data?.length || 0);
     }
 
+    // ── Always log the image receipt so failures are diagnosable ───────────────
+    console.log(`[K-SCAN] image received — mimeType: ${mimeType || '(none)'}  dataLen: ${data?.length ?? 0}`);
+
     if (USE_OPENROUTER) {
-      console.log('[K-SCAN] Provider: OpenRouter');
+      console.log('[K-SCAN] Provider: OpenRouter  model:', OPENROUTER_MODEL);
       const orResult = await callOpenRouter(mimeType, data);
       if (orResult) {
         if (orResult.type === 'non-fashion') {
-          console.log('[K-SCAN MATCH] NON_FASHION result; suppressing product matching');
+          console.log('[K-SCAN] Result: NON_FASHION — suppressing product matching');
+          console.log('[K-SCAN] Final response status: 200 NON_FASHION');
           return res.status(200).json({ ...orResult, products: [] });
         }
+        console.log('[K-SCAN] Result: fashion  category:', orResult.metadata?.category, ' color:', orResult.metadata?.color);
+        console.log('[K-SCAN] Final response status: 200 fashion');
         return res.status(200).json({ ...orResult, products: matchProducts(orResult.metadata) });
       }
-      console.warn('[K-SCAN] OpenRouter returned no text');
-      console.log('[K-SCAN] DEV_FALLBACK branch: OPENROUTER_FAILED');
+      // orResult is null — model returned empty content after all parse attempts
+      console.warn('[K-SCAN] FAILED: OpenRouter returned no usable content for this image');
       if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+      console.warn('[K-SCAN] Final response status: 503 FAILED AI_PROVIDER_UNAVAILABLE');
       return res.status(503).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
     }
 
     console.log('[K-SCAN] Provider: Gemini');
     if (!GEMINI_API_KEY) {
       console.error('[K-SCAN] Missing GEMINI_API_KEY');
-      console.log('[K-SCAN] DEV_FALLBACK branch: GEMINI_KEY_MISSING');
       if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
       return res.status(503).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
     }
@@ -626,7 +887,7 @@ app.post('/api/analyze', async (req, res) => {
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     const geminiController = new AbortController();
-    const geminiTimeout = setTimeout(() => geminiController.abort(), 15000);
+    const geminiTimeout = setTimeout(() => geminiController.abort(), 20000);
 
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
@@ -643,61 +904,71 @@ app.post('/api/analyze', async (req, res) => {
         generationConfig: {
           temperature: 0.4,
           maxOutputTokens: 1024,
-          topP: 0.95,
+          topP:          0.95,
         },
       }),
       signal: geminiController.signal,
     });
     clearTimeout(geminiTimeout);
 
-    const json = await geminiRes.json();
+    const geminiJson = await geminiRes.json();
+    console.log('[K-SCAN] Gemini HTTP status:', geminiRes.status);
 
     if (!geminiRes.ok) {
-      const message = json?.error?.message || `Gemini API error: ${geminiRes.status}`;
+      const message = geminiJson?.error?.message || `Gemini API error: ${geminiRes.status}`;
       console.error('[K-SCAN] Gemini error:', message);
-      console.log('[K-SCAN] DEV_FALLBACK branch: GEMINI_CALL_FAILED');
       if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+      console.warn('[K-SCAN] Final response status: 503 FAILED AI_PROVIDER_UNAVAILABLE');
       return res.status(503).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
     }
 
-    const textPart = json?.candidates?.[0]?.content?.parts?.[0];
-    const rawText = typeof textPart?.text === 'string' ? textPart.text.trim() : '';
+    const textPart = geminiJson?.candidates?.[0]?.content?.parts?.[0];
+    const rawText  = typeof textPart?.text === 'string' ? textPart.text.trim() : '';
+    const blockReason =
+      geminiJson?.promptFeedback?.blockReason ||
+      geminiJson?.candidates?.[0]?.finishReason;
 
-    if (DEBUG) console.log('[K-SCAN] rawText:', JSON.stringify(rawText));
+    console.log(`[K-SCAN] Gemini rawText length: ${rawText.length}  blockReason: ${blockReason ?? 'none'}`);
+    if (DEV_PROVIDER_LOGS && DEBUG) console.warn('[K-SCAN] Gemini rawText preview:', previewProviderText(rawText, 1000));
 
     if (rawText) {
-      const nonFashion = checkNonFashion(rawText);
-      if (nonFashion) {
-        console.log('[K-SCAN MATCH] NON_FASHION result; suppressing product matching');
-        return res.status(200).json({ type: 'non-fashion', message: nonFashion, products: [] });
+      const parsed = parseAIResponse(rawText, { provider: 'Gemini' });
+      if (parsed) {
+        if (parsed.type === 'non-fashion') {
+          console.log('[K-SCAN] Result: NON_FASHION');
+          console.log('[K-SCAN] Final response status: 200 NON_FASHION');
+          return res.status(200).json({ ...parsed, products: [] });
+        }
+        console.log('[K-SCAN] Result: fashion  metadata:', JSON.stringify(parsed.metadata));
+        console.log('[K-SCAN] Final response status: 200 fashion');
+        return res.status(200).json({ ...parsed, products: matchProducts(parsed.metadata) });
       }
-      const metadata = parseMetadata(rawText);
-      console.log('[K-SCAN] parsed metadata:', JSON.stringify(metadata));
-      const result = stripMetadataFromResult(rawText) || rawText;
-      const products = matchProducts(metadata);
-      return res.status(200).json({ result, metadata, products });
+      aiLog('warn', '[K-SCAN] parseAIResponse returned null for non-empty Gemini rawText', {
+        provider: 'Gemini',
+        responseLength: rawText.length,
+        preview: previewProviderText(rawText, 1000),
+      });
     }
 
-    const blockReason =
-      json?.promptFeedback?.blockReason ||
-      json?.candidates?.[0]?.finishReason;
-
-    if (blockReason) {
+    if (blockReason && blockReason !== 'STOP') {
+      console.warn('[K-SCAN] Final response status: 200 blocked', blockReason);
       return res.status(200).json({
-        result: `Analysis was not generated (${blockReason}). Try a different photo.`,
+        result:   `Analysis was not generated (${blockReason}). Try a different photo.`,
         metadata: { category: '', color: '', silhouette: '' },
         products: [],
       });
     }
 
+    console.warn('[K-SCAN] Final response status: 200 empty-analysis-fallback');
     return res.status(200).json({
-      result: "AI couldn't describe this look. Try a clearer, full-outfit photo.",
+      result:   "AI couldn't describe this look. Try a clearer, full-outfit photo.",
       metadata: { category: '', color: '', silhouette: '' },
       products: [],
     });
 
   } catch (error) {
     if (error.name === 'AbortError') {
+      console.warn('[K-SCAN] Final response status: 504 timeout');
       return res.status(504).json({
         result: 'Analysis timed out on the server. Please try again.',
         metadata: { category: '', color: '', silhouette: '' },
@@ -707,6 +978,7 @@ app.post('/api/analyze', async (req, res) => {
     console.error('[K-SCAN] Server error message:', error?.message);
     console.log('[K-SCAN] DEV_FALLBACK branch: OUTER_SERVER_EXCEPTION');
     if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
+    console.warn('[K-SCAN] Final response status: 500 FAILED AI_PROVIDER_UNAVAILABLE');
     return res.status(500).json({ status: 'FAILED', error: 'AI_PROVIDER_UNAVAILABLE', message: 'Style-Parse could not complete.' });
   }
 });
@@ -726,6 +998,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  parseAIResponse,
   matchProducts,
   CONFIDENCE_THRESHOLD,
   WEIGHTS,
