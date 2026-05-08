@@ -57,10 +57,13 @@ function normalizeProduct(p, i) {
  * Throws on network failure, server error, or timeout.
  */
 export async function analyzeImage(base64) {
+  if (__DEV__) console.log('[DEBUG] analyzeImage called payloadLen=' + (base64?.length ?? 0));
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ANALYZE_TIMEOUT_MS);
 
   try {
+    if (__DEV__) console.log('[DEBUG] FETCH_START url=' + BASE_URL + '/api/analyze');
     const response = await fetch(`${BASE_URL}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,6 +71,7 @@ export async function analyzeImage(base64) {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+    if (__DEV__) console.log('[DEBUG] FETCH_DONE status=' + response.status);
 
     // Guard: try parsing JSON; surface a clean error if the server sent garbage
     let data;

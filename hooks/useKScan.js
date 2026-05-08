@@ -77,6 +77,8 @@ export function useKScan() {
 
   const runAnalysis = useCallback(
     async () => {
+      if (__DEV__) console.log('[DEBUG] ANALYZE_TAP status=' + status);
+
       if (status !== 'preview') {
         warnInvalidTransition(status, 'processing');
         return;
@@ -87,11 +89,24 @@ export function useKScan() {
       setError(null);
       setAnalysis(null);
 
+      if (__DEV__) console.log('[DEBUG] SET_PROCESSING');
+
+      // Yield one frame so React renders the processing UI (PerceptionLayer)
+      // before the JS thread is occupied by compression work.
+      if (__DEV__) console.log('[DEBUG] PROCESSING_RENDER_WAIT_START');
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      if (__DEV__) console.log('[DEBUG] PROCESSING_RENDER_WAIT_DONE');
+
       try {
         const processingStart = Date.now();
 
+        if (__DEV__) console.log('[DEBUG] BEFORE_COMPRESS uri=' + photo.uri.slice(0, 80));
         const compressed = await compressForUpload(photo.uri);
+        if (__DEV__) console.log('[DEBUG] AFTER_COMPRESS duration=' + (Date.now() - processingStart) + 'ms payloadLen=' + (compressed?.length ?? 0));
+
+        if (__DEV__) console.log('[DEBUG] BEFORE_API_CALL');
         const data = await analyzeImage(compressed);
+        if (__DEV__) console.log('[DEBUG] AFTER_API_CALL duration=' + (Date.now() - processingStart) + 'ms type=' + data?.type);
 
         // Enforce minimum HUD display time so PerceptionLayer completes its entry
         // animation before we transition to result. Only effective for very fast
@@ -108,6 +123,7 @@ export function useKScan() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           setNonFashionMessage(data.message);
           setAnalysis(null);
+          if (__DEV__) console.log('[DEBUG] SET_RESULT status=non-fashion');
           setStatus('non-fashion');
           return;
         }
@@ -115,11 +131,10 @@ export function useKScan() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setAnalysis(data);
         setNonFashionMessage(null);
+        if (__DEV__) console.log('[DEBUG] SET_RESULT status=result');
         setStatus('result');
       } catch (err) {
-        if (typeof __DEV__ !== 'undefined' && __DEV__) {
-          console.error('Analysis failed:', err);
-        }
+        if (__DEV__) console.error('[DEBUG] ANALYZE_ERROR', err?.message);
         if (isMounted.current) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setError(

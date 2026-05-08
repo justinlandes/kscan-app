@@ -14,6 +14,12 @@ export async function compressForUpload(uri) {
     throw new Error('No image to process. Please take a photo first.');
   }
 
+  if (__DEV__) {
+    console.log('[DEBUG] COMPRESSION_START uri=' + uri.slice(0, 80));
+    console.log('[DEBUG] COMPRESSION_SETTINGS maxWidth=1024 quality=0.7 format=JPEG base64=true');
+  }
+  const t0 = Date.now();
+
   try {
     const result = await ImageManipulator.manipulateAsync(
       uri,
@@ -25,8 +31,17 @@ export async function compressForUpload(uri) {
       throw new Error('Compression produced no output.');
     }
 
+    if (__DEV__) {
+      console.log(
+        '[DEBUG] COMPRESSION_DONE duration=' + (Date.now() - t0) + 'ms' +
+        ' outputUri=' + (result.uri ?? '').slice(0, 60) +
+        ' base64Len=' + result.base64.length
+      );
+    }
+
     return `data:image/jpeg;base64,${result.base64}`;
   } catch (error) {
+    if (__DEV__) console.error('[DEBUG] COMPRESSION_ERROR duration=' + (Date.now() - t0) + 'ms', error?.message);
     // Re-throw user-readable errors as-is; wrap internal errors
     if (error.message && !error.message.includes('manipulate')) {
       throw error;

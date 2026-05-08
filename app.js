@@ -106,6 +106,7 @@ function ActionButton({ label, onPress, variant = 'primary', disabled = false })
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.86}
+      accessibilityLabel={label}
     >
       <Text
         style={[
@@ -157,11 +158,6 @@ export default function App() {
   // Reset to false when a new analysis starts (status → processing).
   const hasSavedRef = useRef(false);
   const [savedToast, setSavedToast] = useState(false);
-
-  // statusRef: always-current status value for use inside animation callbacks
-  // where a closure over the useState value would be stale.
-  const statusRef = useRef(status);
-  statusRef.current = status;
 
   // perceiving: true while the post-result PerceptionLayer (real metadata) is
   // running. The AnalysisCard is held back until perceiving becomes false.
@@ -468,18 +464,12 @@ export default function App() {
       <StatusBar style="light" />
       {renderContent()}
 
-      {/* Processing HUD: shows immediately when analysis starts, placeholder labels */}
+      {/* Processing HUD — onComplete is a no-op: bumping procHudKey here caused an infinite remount loop → ANR */}
       {status === 'processing' && (
         <PerceptionLayer
           key={procHudKey}
           metadata={null}
-          onComplete={() => {
-            // If result arrived and unmounted this before animation finished,
-            // statusRef guards against calling setProcHudKey unnecessarily.
-            if (statusRef.current === 'processing') {
-              setProcHudKey(k => k + 1);
-            }
-          }}
+          onComplete={() => {}}
         />
       )}
 
