@@ -29,7 +29,10 @@ function resolveBaseUrl() {
 }
 
 // Resolved once at module load — log it once for easy debugging
-const BASE_URL = resolveBaseUrl();
+export const BASE_URL = resolveBaseUrl();
+export function getApiBaseUrl() {
+  return BASE_URL;
+}
 if (typeof __DEV__ !== 'undefined' && __DEV__) {
   console.log('[K-SCAN] API_BASE_URL:', BASE_URL);
 }

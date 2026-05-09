@@ -9,7 +9,8 @@
     "start:android": "EXPO_PUBLIC_API_URL=http://10.0.2.2:3001 expo start",
     "android": "expo run:android",
     "android:device": "expo run:android --device",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "qa:fixtures": "node scripts/qa-fixtures.js"
   },
   "dependencies": {
     "cors": "^2.8.6",

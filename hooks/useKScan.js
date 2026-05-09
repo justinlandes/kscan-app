@@ -101,6 +101,11 @@ export function useKScan() {
         const processingStart = Date.now();
 
         if (__DEV__) console.log('[DEBUG] BEFORE_COMPRESS uri=' + photo.uri.slice(0, 80));
+        if (__DEV__ && photo.qaFixtureName) {
+          console.log('[K-SCAN QA] Fixture selected: ' + photo.qaFixtureName);
+          console.log('[K-SCAN QA] Using compressImage utility: true');
+          console.log('[K-SCAN QA] Sending fixture through /api/analyze');
+        }
         const compressed = await compressForUpload(photo.uri);
         if (__DEV__) console.log('[DEBUG] AFTER_COMPRESS duration=' + (Date.now() - processingStart) + 'ms payloadLen=' + (compressed?.length ?? 0));
 
@@ -163,6 +168,34 @@ export function useKScan() {
     setStatus('idle');
   }, [status, photo]);
 
+  const selectStaticFixture = useCallback(
+    (uri, fixtureName) => {
+      if (typeof __DEV__ === 'undefined' || !__DEV__) return;
+
+      if (status !== 'idle') {
+        warnInvalidTransition(status, 'capturing');
+        return;
+      }
+
+      if (!uri || typeof uri !== 'string') {
+        setError('Static QA fixture could not be loaded.');
+        setStatus('error');
+        return;
+      }
+
+      console.log('[K-SCAN QA] Fixture selected: ' + fixtureName);
+      setStatus('capturing');
+      setPhoto({ uri, qaFixtureName: fixtureName });
+      setError(null);
+      setAnalysis(null);
+      setNonFashionMessage(null);
+      requestAnimationFrame(() => {
+        if (isMounted.current) setStatus('preview');
+      });
+    },
+    [status]
+  );
+
   const dismissResult = useCallback(() => {
     if (status !== 'result' && status !== 'error' && status !== 'non-fashion') {
       warnInvalidTransition(status, 'idle');
@@ -205,5 +238,6 @@ export function useKScan() {
     retake,
     dismissResult,
     retry,
+    selectStaticFixture,
   };
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Animated,
   BackHandler,
+  Modal,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
@@ -18,9 +19,16 @@ import { useRouter } from 'expo-router';
 import { useScanAnimation } from './hooks/useScanAnimation';
 import { useKScan } from './hooks/useKScan';
 import { saveScan } from './services/library';
+import { getApiBaseUrl } from './services/api';
 import { AnalysisCard } from './components/AnalysisCard';
 import { PerceptionLayer } from './components/PerceptionLayer';
 import { ScanButton } from './components/ScanButton';
+import {
+  APP_BUILD_LABEL,
+  DEV_FALLBACK_STATUS,
+  QA_TOOLS_ENABLED,
+} from './constants/build';
+import { QA_FIXTURES } from './constants/qaFixtures';
 import {
   BUTTONS,
   COLORS,
@@ -134,6 +142,37 @@ function ProcessingPanel() {
   );
 }
 
+function QAPanel({ status, onSelectFixture }) {
+  if (!QA_TOOLS_ENABLED) return null;
+
+  return (
+    <View style={styles.qaPanel} testID="qa-panel">
+      <Text style={styles.qaTitle}>QA</Text>
+      <Text style={styles.qaText}>Build: {APP_BUILD_LABEL}</Text>
+      <Text style={styles.qaText}>API: {getApiBaseUrl()}</Text>
+      <Text style={styles.qaText}>DEV_FALLBACK: {DEV_FALLBACK_STATUS}</Text>
+      <Text style={styles.qaText}>Static QA: enabled</Text>
+      <Text style={styles.qaText}>State: {status}</Text>
+      <View style={styles.qaFixtureGrid}>
+        {QA_FIXTURES.map((fixture) => (
+          <TouchableOpacity
+            key={fixture.id}
+            style={[
+              styles.qaFixtureButton,
+              status !== 'idle' ? styles.qaFixtureButtonDisabled : null,
+            ]}
+            onPress={() => onSelectFixture(fixture)}
+            disabled={status !== 'idle'}
+            activeOpacity={0.78}
+          >
+            <Text style={styles.qaFixtureText}>{fixture.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
@@ -150,9 +189,54 @@ export default function App() {
     retake,
     dismissResult,
     retry,
+    selectStaticFixture,
   } = useKScan();
 
   const router = useRouter();
+  const [qaPanelVisible, setQaPanelVisible] = useState(false);
+  const qaTapRef = useRef({ count: 0, lastTap: 0 });
+
+  useEffect(() => {
+    console.log(`[K-SCAN] Build: ${APP_BUILD_LABEL}`);
+    console.log('[K-SCAN] __DEV__:', typeof __DEV__ !== 'undefined' && __DEV__);
+    console.log(`[K-SCAN] DEV_FALLBACK: ${DEV_FALLBACK_STATUS}`);
+    console.log(`[K-SCAN] Static QA path enabled: ${QA_TOOLS_ENABLED}`);
+    if (QA_TOOLS_ENABLED) console.log('[K-SCAN] API URL:', getApiBaseUrl());
+  }, []);
+
+  const handleBrandPress = useCallback(() => {
+    if (!QA_TOOLS_ENABLED) return;
+
+    const now = Date.now();
+    const previous = qaTapRef.current;
+    const count = now - previous.lastTap < 800 ? previous.count + 1 : 1;
+    qaTapRef.current = { count, lastTap: now };
+
+    if (count >= 3) {
+      qaTapRef.current = { count: 0, lastTap: 0 };
+      setQaPanelVisible((visible) => !visible);
+    }
+  }, []);
+
+  const renderBrandTitle = () => (
+    <TouchableOpacity
+      onPress={handleBrandPress}
+      activeOpacity={QA_TOOLS_ENABLED ? 0.82 : 1}
+      accessibilityLabel="K-SCAN"
+    >
+      <Text style={styles.brandTitle}>K-SCAN</Text>
+    </TouchableOpacity>
+  );
+
+  const handleSelectFixture = useCallback(
+    (fixture) => {
+      if (!QA_TOOLS_ENABLED) return;
+      const resolved = Image.resolveAssetSource(fixture.source);
+      selectStaticFixture(resolved?.uri, fixture.id);
+      setQaPanelVisible(false);
+    },
+    [selectStaticFixture]
+  );
 
   // hasSavedRef: prevents saving the same result twice if the effect re-fires.
   // Reset to false when a new analysis starts (status → processing).
@@ -239,7 +323,7 @@ export default function App() {
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" />
         <View style={styles.centerContent}>
-          <Text style={styles.brandTitle}>K-SCAN</Text>
+          {renderBrandTitle()}
           <Text style={styles.infoText}>
             We need access to your camera to capture your look.
           </Text>
@@ -254,7 +338,7 @@ export default function App() {
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" />
         <View style={styles.centerContent}>
-          <Text style={styles.brandTitle}>K-SCAN</Text>
+          {renderBrandTitle()}
           <Text style={styles.infoText}>
             Camera access is currently disabled. Enable it in settings to continue.
           </Text>
@@ -299,7 +383,7 @@ export default function App() {
     <View style={styles.cameraScreen}>
       <SafeAreaView style={styles.launchBannerShell} pointerEvents="box-none">
         <View style={styles.launchBanner}>
-          <Text style={styles.brandTitle}>K-SCAN</Text>
+          {renderBrandTitle()}
           <Text style={styles.launchBannerText}>Scan Ready</Text>
         </View>
       </SafeAreaView>
@@ -314,7 +398,7 @@ export default function App() {
 
         <View style={[styles.cameraOverlay, { pointerEvents: 'box-none' }]}>
           <SafeAreaView style={styles.topBar}>
-            <Text style={styles.brandTitle}>K-SCAN</Text>
+            {renderBrandTitle()}
             <Text style={styles.caption}>Capture your silhouette</Text>
             <View testID="scan-home-signal" style={styles.scanSignalBadge}>
               <Text style={styles.scanSignalText}>Scan Ready</Text>
@@ -329,6 +413,17 @@ export default function App() {
               activeOpacity={0.7}
             >
               <Text style={styles.libraryButtonText}>LIBRARY</Text>
+            </TouchableOpacity>
+          )}
+
+          {QA_TOOLS_ENABLED && status === 'idle' && (
+            <TouchableOpacity
+              testID="qa-toggle-button"
+              style={styles.qaToggleButton}
+              onPress={() => setQaPanelVisible((visible) => !visible)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.qaToggleButtonText}>QA</Text>
             </TouchableOpacity>
           )}
 
@@ -426,7 +521,7 @@ export default function App() {
   const renderPreviewScreen = () => (
     <SafeAreaView style={styles.previewScreen}>
       <View style={styles.previewHeader}>
-        <Text style={styles.brandTitle}>K-SCAN</Text>
+        {renderBrandTitle()}
         <Text style={styles.subtitle}>Look Analyzer</Text>
       </View>
 
@@ -463,6 +558,17 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light" />
       {renderContent()}
+
+      {QA_TOOLS_ENABLED && (
+        <Modal
+          visible={qaPanelVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setQaPanelVisible(false)}
+        >
+          <QAPanel status={status} onSelectFixture={handleSelectFixture} />
+        </Modal>
+      )}
 
       {/* Processing HUD — onComplete is a no-op: bumping procHudKey here caused an infinite remount loop → ANR */}
       {status === 'processing' && (
@@ -773,6 +879,50 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
   },
+  qaPanel: {
+    position: 'absolute',
+    left: SPACING.md,
+    right: SPACING.md,
+    bottom: SPACING.md,
+    zIndex: 80,
+    elevation: 80,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: 'rgba(12, 15, 21, 0.96)',
+    padding: SPACING.md,
+  },
+  qaTitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.accent,
+    marginBottom: SPACING.xs,
+  },
+  qaText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  qaFixtureGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  qaFixtureButton: {
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  qaFixtureButtonDisabled: {
+    opacity: 0.45,
+  },
+  qaFixtureText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textPrimary,
+  },
   errorToast: {
     position: 'absolute',
     top: TOAST.top,
@@ -828,6 +978,23 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderStrong,
   },
   libraryButtonText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.accent,
+  },
+  qaToggleButton: {
+    position: 'absolute',
+    top: LAYOUT.safeTop + SPACING.xl + 48,
+    right: LAYOUT.screenPadding,
+    zIndex: 30,
+    elevation: 30,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(12, 15, 21, 0.88)',
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+  },
+  qaToggleButtonText: {
     ...TYPOGRAPHY.caption,
     color: COLORS.accent,
   },
