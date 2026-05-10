@@ -10,6 +10,7 @@ import {
   PanResponder,
   Easing,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MetadataChip } from './MetadataChip';
 import { ProductShelf, type Product } from './ProductShelf';
 import {
@@ -38,6 +39,7 @@ function sanitizeText(value?: string) {
 }
 
 export function AnalysisCard({ result, metadata, products = [], onDismiss }: AnalysisCardProps) {
+  const insets = useSafeAreaInsets();
   const translateY    = useRef(new Animated.Value(FROM_Y)).current;
   const opacity       = useRef(new Animated.Value(0)).current;
   const chip1Opacity  = useRef(new Animated.Value(0)).current;
@@ -121,7 +123,14 @@ export function AnalysisCard({ result, metadata, products = [], onDismiss }: Ana
       <View style={styles.backdrop} pointerEvents="box-none">
         <Animated.View
           testID="analysis-card"
-          style={[styles.cardWrap, { transform: [{ translateY }], opacity }]}
+          style={[
+            styles.cardWrap,
+            {
+              marginBottom: Math.max(LAYOUT.modalBottomPadding, insets.bottom + SPACING.lg),
+              transform: [{ translateY }],
+              opacity,
+            },
+          ]}
           {...panResponder.panHandlers}
         >
           {/* Subtle gold glow behind card */}
@@ -180,7 +189,6 @@ const styles = StyleSheet.create({
     backgroundColor:    COLORS.backdrop,
     justifyContent:     'flex-end',
     paddingHorizontal:  SPACING.xl,
-    paddingBottom:      LAYOUT.modalBottomPadding,
   },
   cardWrap: {
     borderRadius:  card.borderRadius,

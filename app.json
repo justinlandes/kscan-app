@@ -4,6 +4,7 @@
     "slug": "kscan",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
+    "scheme": "kscan",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",

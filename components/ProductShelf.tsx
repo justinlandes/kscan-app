@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   Linking,
+  Animated,
   type ImageStyle,
 } from 'react-native';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { selectionTick } from '../services/haptics';
 
 export interface Product {
   id?:         string;
@@ -105,6 +106,50 @@ function ProductImagePlaceholder({ category }: { category: string }) {
   );
 }
 
+function CatalogProductImage({
+  uri,
+  productKey,
+  imageCategory,
+  onError,
+}: {
+  uri: string;
+  productKey: string;
+  imageCategory: string;
+  onError: () => void;
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  return (
+    <View style={styles.image}>
+      <View style={[styles.image, styles.imageSkeleton]} />
+      <Animated.Image
+        source={{ uri }}
+        style={[styles.productImage as ImageStyle, { opacity }]}
+        resizeMode="cover"
+        onLoad={() => {
+          Animated.timing(opacity, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+          }).start();
+        }}
+        onError={() => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__) {
+            console.log(
+              '[K-SCAN ProductShelf] image load failed',
+              JSON.stringify({
+                productKey,
+                category: imageCategory,
+              }),
+            );
+          }
+          onError();
+        }}
+      />
+    </View>
+  );
+}
+
 export function ProductShelf({ products }: ProductShelfProps) {
   const [linkErrorVisible, setLinkErrorVisible] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -113,6 +158,7 @@ export function ProductShelf({ products }: ProductShelfProps) {
 
   const handleLinkPress = (url: string | null | undefined) => {
     if (!url) return;
+    selectionTick();
     Linking.openURL(url).catch(() => {
       setLinkErrorVisible(true);
       setTimeout(() => setLinkErrorVisible(false), 2000);
@@ -155,23 +201,11 @@ export function ProductShelf({ products }: ProductShelfProps) {
               activeOpacity={hasLink ? 0.78 : 1}
             >
               {showImage ? (
-                <Image
-                  source={{ uri: p.imageUrl }}
-                  style={styles.productImage as ImageStyle}
-                  resizeMode="cover"
-                  onError={() => {
-                    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-                      console.log(
-                        '[K-SCAN ProductShelf] image load failed',
-                        JSON.stringify({
-                          name: p.name || 'Unknown Product',
-                          hasImageUrl: !!p.imageUrl,
-                          category: imageCategory,
-                        }),
-                      );
-                    }
-                    setFailedImages((current) => ({ ...current, [productKey]: true }));
-                  }}
+                <CatalogProductImage
+                  uri={p.imageUrl}
+                  productKey={productKey}
+                  imageCategory={imageCategory}
+                  onError={() => setFailedImages((current) => ({ ...current, [productKey]: true }))}
                 />
               ) : (
                 <View style={[styles.image, styles.imagePlaceholder]}>
@@ -246,11 +280,19 @@ const styles = StyleSheet.create({
   productImage: {
     width:  IMAGE_SIZE,
     height: IMAGE_SIZE,
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   imagePlaceholder: {
     backgroundColor: COLORS.bg,
     alignItems:      'center',
     justifyContent:  'center',
+  },
+  imageSkeleton: {
+    backgroundColor: COLORS.bgElevated,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   placeholderMark: {
     width:          72,

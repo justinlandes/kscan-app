@@ -1,7 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import * as Haptics from 'expo-haptics';
 import { analyzeImage } from '../services/api';
 import { compressForUpload } from '../services/imageUtils';
+import {
+  errorPulse,
+  softImpact,
+  successPulse,
+  warningPulse,
+} from '../services/haptics';
 
 // Minimum time to stay in 'processing' so the PerceptionLayer HUD has time to
 // complete its entry animation (~730ms) before the result card appears.
@@ -55,7 +60,7 @@ export function useKScan() {
       if (!cameraRef?.current) return;
 
       setStatus('capturing');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      softImpact();
 
       try {
         const result = await cameraRef.current.takePictureAsync({
@@ -125,7 +130,7 @@ export function useKScan() {
 
         if (data.type === 'non-fashion') {
           // Graceful non-fashion path — not an error
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          warningPulse();
           setNonFashionMessage(data.message);
           setAnalysis(null);
           if (__DEV__) console.log('[DEBUG] SET_RESULT status=non-fashion');
@@ -133,7 +138,7 @@ export function useKScan() {
           return;
         }
 
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        successPulse();
         setAnalysis(data);
         setNonFashionMessage(null);
         if (__DEV__) console.log('[DEBUG] SET_RESULT status=result');
@@ -141,9 +146,10 @@ export function useKScan() {
       } catch (err) {
         if (__DEV__) console.error('[DEBUG] ANALYZE_ERROR', err?.message);
         if (isMounted.current) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          errorPulse();
           setError(
-            err?.message || 'Could not reach the server. Check your Wi-Fi.'
+            err?.userMessage ||
+            'Connection issue — Tap to retry'
           );
           setStatus('error');
         }

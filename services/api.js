@@ -20,6 +20,12 @@ import { Platform } from 'react-native';
 // than timing out first and showing a generic network error.
 const ANALYZE_TIMEOUT_MS = 25000;
 
+function userSafeError(message, userMessage) {
+  const error = new Error(message);
+  error.userMessage = userMessage;
+  return error;
+}
+
 function resolveBaseUrl() {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl && envUrl.trim()) return envUrl.trim();
@@ -160,14 +166,16 @@ export async function analyzeImage(base64) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error(
-        'Analysis timed out. Check your Wi-Fi and make sure the K-Scan server is running.'
+      throw userSafeError(
+        'Analysis timed out.',
+        'Preparing K-SCAN Engine... Tap to retry'
       );
     }
     // Network / connection failure (fetch throws TypeError for unreachable hosts)
     if (err instanceof TypeError) {
-      throw new Error(
-        'CONNECTION INTERRUPTED\nK-SCAN could not reach the Style-Parse engine.'
+      throw userSafeError(
+        'Network request failed.',
+        'Connection issue — Tap to retry'
       );
     }
     throw err;

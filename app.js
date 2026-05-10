@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  SafeAreaView,
   Animated,
   BackHandler,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 
@@ -131,12 +131,25 @@ function ActionButton({ label, onPress, variant = 'primary', disabled = false })
 }
 
 function ProcessingPanel() {
+  const [showSpinner, setShowSpinner] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSpinner(true), 200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <View style={styles.processingPanel}>
-      <ActivityIndicator size={LOADING.indicatorSize} color={COLORS.accent} />
+      <View style={styles.processingIndicatorSlot}>
+        {showSpinner ? (
+          <ActivityIndicator size={LOADING.indicatorSize} color={COLORS.accent} />
+        ) : (
+          <View style={styles.processingIndicatorHalo} />
+        )}
+      </View>
       <Text style={styles.processingText}>Analyzing your look</Text>
       <Text style={styles.processingCaption}>
-        Refining silhouette, palette, and category into your styling read.
+        Preparing K-SCAN Engine and refining your styling read.
       </Text>
     </View>
   );
@@ -195,6 +208,14 @@ export default function App() {
   const router = useRouter();
   const [qaPanelVisible, setQaPanelVisible] = useState(false);
   const qaTapRef = useRef({ count: 0, lastTap: 0 });
+
+  useEffect(() => {
+    if (!permission?.granted || isCameraReady) return undefined;
+    const timer = setTimeout(() => {
+      setIsCameraReady(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [permission?.granted, isCameraReady]);
 
   useEffect(() => {
     console.log(`[K-SCAN] Build: ${APP_BUILD_LABEL}`);
@@ -381,13 +402,6 @@ export default function App() {
 
   const renderCameraScreen = () => (
     <View style={styles.cameraScreen}>
-      <SafeAreaView style={styles.launchBannerShell} pointerEvents="box-none">
-        <View style={styles.launchBanner}>
-          {renderBrandTitle()}
-          <Text style={styles.launchBannerText}>Scan Ready</Text>
-        </View>
-      </SafeAreaView>
-
       <View style={styles.cameraStage}>
         <CameraView
           style={styles.camera}
@@ -702,29 +716,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  launchBannerShell: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    paddingHorizontal: LAYOUT.screenPadding,
-    paddingTop: LAYOUT.safeTop,
-  },
-  launchBanner: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surfaceStrong,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-  },
-  launchBannerText: {
-    ...TYPOGRAPHY.cta,
-    color: COLORS.accent,
-    marginTop: SPACING.sm,
-  },
   camera: {
     flex: 1,
   },
@@ -859,6 +850,20 @@ const styles = StyleSheet.create({
     padding: LOADING.panelPadding,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  processingIndicatorSlot: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  processingIndicatorHalo: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.accentSoft,
   },
   nonFashionPanel: {
     borderRadius: LOADING.panelRadius,
