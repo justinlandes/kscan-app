@@ -54,6 +54,64 @@ function loadCatalog() {
 
 const CATALOG = loadCatalog();
 
+const IMAGE_PLACEHOLDER_CATEGORIES = new Set([
+  'footwear',
+  'outerwear',
+  'tops',
+  'bottoms',
+  'dresses',
+  'accessories',
+]);
+
+const CATEGORY_TAG_MAP = [
+  { category: 'footwear', tags: ['sneakers', 'boots'] },
+  { category: 'outerwear', tags: ['jacket', 'coat', 'blazer', 'vest'] },
+  { category: 'tops', tags: ['shirt', 'hoodie', 'tank', 'polo', 'bralette', 'top', 'cardigan', 'set'] },
+  { category: 'bottoms', tags: ['jeans', 'trousers', 'shorts', 'skirt', 'pants'] },
+  { category: 'dresses', tags: ['dress'] },
+  { category: 'accessories', tags: ['bag', 'tote', 'beanie'] },
+];
+
+const KNOWN_BAD_IMAGE_RE = /(?:picsum|unsplash|landscape|ocean|bridge|building|city|mountain|beach|nature|scenery|random)/i;
+
+function imageCategoryForProduct(product) {
+  const tags = Array.isArray(product?.tags) ? product.tags : [];
+  const match = CATEGORY_TAG_MAP.find(({ tags: categoryTags }) =>
+    tags.some((tag) => categoryTags.includes(tag))
+  );
+  return match?.category || 'accessories';
+}
+
+function isUsableProductImageUrl(imageUrl) {
+  if (typeof imageUrl !== 'string' || !imageUrl.trim()) return false;
+  if (KNOWN_BAD_IMAGE_RE.test(imageUrl)) return false;
+  try {
+    const parsed = new URL(imageUrl);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch (_) {
+    return false;
+  }
+}
+
+function shapeProductForResponse(product) {
+  const imageCategory = imageCategoryForProduct(product);
+  const imageUrl = isUsableProductImageUrl(product.imageUrl) ? product.imageUrl : null;
+
+  if (product.imageUrl && !imageUrl && process.env.KSCAN_LOG_MATCH !== 'false') {
+    console.log(
+      `[K-SCAN MATCH] image sanitized: ${product.retailer} ${product.name}` +
+      `  category:${imageCategory}`,
+    );
+  }
+
+  const { tags, ...rest } = product;
+  return {
+    ...rest,
+    imageUrl,
+    imageCategory: IMAGE_PLACEHOLDER_CATEGORIES.has(imageCategory) ? imageCategory : 'accessories',
+  };
+}
+
 // ─── Weighted Heuristic Engine ────────────────────────────────────────────────
 // TUNING GUIDE:
 //   PRIMARY   – item type match. Raise to punish cross-category more harshly.
@@ -458,7 +516,7 @@ function matchProducts(metadata, options = {}) {
     remaining.splice(remaining.indexOf(pick), 1);
   }
 
-  return selected.map(({ product: { tags, ...rest } }) => rest);
+  return selected.map(({ product }) => shapeProductForResponse(product));
 }
 
 // JSON-first prompt — modern LLMs (Llama 4, GPT-4o, etc.) produce more reliable

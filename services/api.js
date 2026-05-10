@@ -37,6 +37,34 @@ if (typeof __DEV__ !== 'undefined' && __DEV__) {
   console.log('[K-SCAN] API_BASE_URL:', BASE_URL);
 }
 
+const KNOWN_BAD_PRODUCT_IMAGE_RE =
+  /(?:picsum|unsplash|landscape|ocean|bridge|building|city|mountain|beach|nature|scenery|random)/i;
+
+function normalizeImageUrl(...values) {
+  const imageUrl = values.find((value) => typeof value === 'string' && value.trim());
+  if (!imageUrl || KNOWN_BAD_PRODUCT_IMAGE_RE.test(imageUrl)) return null;
+  return imageUrl;
+}
+
+function inferImageCategory(p) {
+  const text = [
+    p?.imageCategory,
+    p?.image_category,
+    p?.categoryFallback,
+    p?.name,
+    p?.title,
+    ...(Array.isArray(p?.tags) ? p.tags : []),
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  if (/\b(sneaker|sneakers|boot|boots|shoe|shoes|footwear)\b/.test(text)) return 'footwear';
+  if (/\b(jacket|coat|blazer|vest|outerwear)\b/.test(text)) return 'outerwear';
+  if (/\b(dress|gown|one-piece|one piece)\b/.test(text)) return 'dresses';
+  if (/\b(jeans|trousers|pants|shorts|skirt|bottoms)\b/.test(text)) return 'bottoms';
+  if (/\b(bag|tote|beanie|accessor|sling)\b/.test(text)) return 'accessories';
+  if (/\b(shirt|hoodie|tank|polo|bralette|top|cardigan|turtleneck)\b/.test(text)) return 'tops';
+  return null;
+}
+
 /**
  * Normalize a raw product from the backend into a safe shape for ProductShelf.
  * Handles alternative field names and missing fields without crashing.
@@ -47,7 +75,8 @@ function normalizeProduct(p, i) {
     name: p.name ?? p.title ?? 'Unknown Product',
     retailer: p.retailer ?? p.brand ?? 'Retailer unavailable',
     price: p.price ?? 'Price unavailable',
-    imageUrl: p.imageUrl ?? p.image_url ?? p.image ?? null,
+    imageUrl: normalizeImageUrl(p.imageUrl, p.image_url, p.image),
+    imageCategory: inferImageCategory(p),
     productUrl: p.productUrl ?? p.product_url ?? p.url ?? p.purchaseUrl ?? null,
   };
 }

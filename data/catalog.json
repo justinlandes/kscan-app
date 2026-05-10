@@ -4,7 +4,7 @@
     "name": "Oversized Graphic Hoodie",
     "retailer": "ASOS",
     "price": "$52",
-    "imageUrl": "https://picsum.photos/seed/c001/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.asos.com/search/?q=oversized+graphic+hoodie",
     "tags": ["streetwear", "oversized", "casual", "boxy", "monochrome", "black", "white", "hoodie", "graphic"]
   },
@@ -13,7 +13,7 @@
     "name": "Wide-Leg Cargo Pants",
     "retailer": "ZARA",
     "price": "$59",
-    "imageUrl": "https://picsum.photos/seed/c002/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.zara.com/us/en/search?searchTerm=wide+leg+cargo+pants",
     "tags": ["streetwear", "casual", "relaxed", "oversized", "neutral", "khaki", "beige", "green", "cargo", "pants"]
   },
@@ -22,7 +22,7 @@
     "name": "Air Force 1 Low",
     "retailer": "Nike",
     "price": "$110",
-    "imageUrl": "https://picsum.photos/seed/c003/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.nike.com/search?q=air+force+1",
     "tags": ["streetwear", "casual", "athleisure", "white", "monochrome", "sneakers", "classic", "low-top"]
   },
@@ -31,7 +31,7 @@
     "name": "Ribbed Slim Turtleneck",
     "retailer": "COS",
     "price": "$65",
-    "imageUrl": "https://picsum.photos/seed/c004/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.cos.com/en_usd/search.html?q=ribbed+turtleneck",
     "tags": ["minimalist", "fitted", "slim", "neutral", "cream", "beige", "black", "classic", "ribbed", "turtleneck", "knit"]
   },
@@ -40,7 +40,7 @@
     "name": "Linen Relaxed Blazer",
     "retailer": "Mango",
     "price": "$89",
-    "imageUrl": "https://picsum.photos/seed/c005/400/500",
+    "imageUrl": null,
     "productUrl": "https://shop.mango.com/us/search?q=linen+blazer",
     "tags": ["minimalist", "classic", "tailored", "relaxed", "neutral", "beige", "white", "formal", "linen", "blazer", "layered"]
   },
@@ -49,7 +49,7 @@
     "name": "Oxford Button-Down Shirt",
     "retailer": "Uniqlo",
     "price": "$39",
-    "imageUrl": "https://picsum.photos/seed/c006/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.uniqlo.com/us/en/search?q=oxford+shirt",
     "tags": ["minimalist", "classic", "preppy", "fitted", "white", "blue", "monochrome", "formal", "tailored", "shirt", "oxford"]
   },
@@ -58,7 +58,7 @@
     "name": "Pleated Wide-Leg Trousers",
     "retailer": "Arket",
     "price": "$99",
-    "imageUrl": "https://picsum.photos/seed/c007/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.arket.com/en_usd/search?q=pleated+trousers",
     "tags": ["classic", "formal", "tailored", "relaxed", "wide-leg", "neutral", "gray", "black", "minimalist", "trousers", "layered"]
   },
@@ -67,7 +67,7 @@
     "name": "1460 Smooth Leather Boots",
     "retailer": "Dr. Martens",
     "price": "$170",
-    "imageUrl": "https://picsum.photos/seed/c008/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.drmartens.com/us/en_us/search?q=1460+leather+boots",
     "tags": ["classic", "grunge", "streetwear", "black", "fitted", "statement", "boots", "leather", "lace-up"]
   },
@@ -76,7 +76,7 @@
     "name": "Oversized Wool-Blend Cardigan",
     "retailer": "H&M",
     "price": "$49",
-    "imageUrl": "https://picsum.photos/seed/c009/400/500",
+    "imageUrl": null,
     "productUrl": "https://www2.hm.com/en_us/search-results.html?q=oversized+cardigan",
     "tags": ["casual", "oversized", "layered", "earth", "neutral", "brown", "camel", "cream", "knit", "cozy", "cardigan"]
   },
@@ -85,7 +85,7 @@
     "name": "Satin Bias-Cut Midi Skirt",
     "retailer": "Reformation",
     "price": "$148",
-    "imageUrl": "https://picsum.photos/seed/c010/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.thereformation.com/search?q=satin+midi+skirt",
     "tags": ["minimalist", "elegant", "romantic", "relaxed", "flowy", "neutral", "cream", "black", "satin", "skirt", "midi"]
   },
@@ -94,7 +94,7 @@
     "name": "501 Original Straight Jeans",
     "retailer": "Levi's",
     "price": "$79",
-    "imageUrl": "https://picsum.photos/seed/c011/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.levi.com/US/en_US/search?q=501+straight+jeans",
     "tags": ["casual", "classic", "straight", "relaxed", "blue", "denim", "jeans", "high-rise", "preppy"]
   },
@@ -103,7 +103,7 @@
     "name": "Seamless Training Set",
     "retailer": "Gymshark",
     "price": "$90",
-    "imageUrl": "https://picsum.photos/seed/c012/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.gymshark.com/search?q=seamless+set",
     "tags": ["athleisure", "casual", "fitted", "monochrome", "black", "navy", "sporty", "matching", "set", "cropped"]
   },
@@ -112,7 +112,7 @@
     "name": "Trench Coat",
     "retailer": "ZARA",
     "price": "$139",
-    "imageUrl": "https://picsum.photos/seed/c013/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.zara.com/us/en/search?searchTerm=trench+coat",
     "tags": ["classic", "minimalist", "tailored", "layered", "neutral", "beige", "camel", "formal", "trench", "coat", "outerwear"]
   },
@@ -121,7 +121,7 @@
     "name": "Slouchy Ribbed Beanie",
     "retailer": "ASOS",
     "price": "$14",
-    "imageUrl": "https://picsum.photos/seed/c014/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.asos.com/search/?q=slouchy+beanie",
     "tags": ["streetwear", "casual", "oversized", "monochrome", "black", "gray", "neutral", "accessories", "beanie", "knit", "cozy"]
   },
@@ -130,7 +130,7 @@
     "name": "Structured Leather Tote",
     "retailer": "Mango",
     "price": "$79",
-    "imageUrl": "https://picsum.photos/seed/c015/400/500",
+    "imageUrl": null,
     "productUrl": "https://shop.mango.com/us/search?q=leather+tote",
     "tags": ["minimalist", "classic", "formal", "neutral", "black", "brown", "camel", "tailored", "bag", "tote", "leather", "accessories"]
   },
@@ -139,7 +139,7 @@
     "name": "Oversized Denim Jacket",
     "retailer": "Levi's",
     "price": "$98",
-    "imageUrl": "https://picsum.photos/seed/c016/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.levi.com/US/en_US/search?q=oversized+denim+jacket",
     "tags": ["casual", "streetwear", "oversized", "layered", "blue", "denim", "boxy", "jacket", "outerwear", "relaxed"]
   },
@@ -148,7 +148,7 @@
     "name": "High-Neck Floral Midi Dress",
     "retailer": "Free People",
     "price": "$128",
-    "imageUrl": "https://picsum.photos/seed/c017/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.freepeople.com/search/?q=floral+midi+dress",
     "tags": ["bohemian", "romantic", "flowy", "relaxed", "layered", "floral", "earthy", "earth", "brown", "green", "dress", "midi"]
   },
@@ -157,7 +157,7 @@
     "name": "Cropped Leather Moto Jacket",
     "retailer": "ASOS",
     "price": "$118",
-    "imageUrl": "https://picsum.photos/seed/c018/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.asos.com/search/?q=cropped+leather+moto+jacket",
     "tags": ["streetwear", "grunge", "edgy", "fitted", "cropped", "black", "monochrome", "statement", "leather", "jacket", "layered"]
   },
@@ -166,7 +166,7 @@
     "name": "Relaxed Linen Trousers",
     "retailer": "Uniqlo",
     "price": "$49",
-    "imageUrl": "https://picsum.photos/seed/c019/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.uniqlo.com/us/en/search?q=linen+trousers",
     "tags": ["minimalist", "casual", "relaxed", "wide-leg", "neutral", "white", "beige", "cream", "navy", "linen", "trousers", "summer"]
   },
@@ -175,7 +175,7 @@
     "name": "Longline Puffer Coat",
     "retailer": "H&M",
     "price": "$119",
-    "imageUrl": "https://picsum.photos/seed/c020/400/500",
+    "imageUrl": null,
     "productUrl": "https://www2.hm.com/en_us/search-results.html?q=longline+puffer+coat",
     "tags": ["casual", "streetwear", "oversized", "layered", "black", "monochrome", "puffer", "coat", "outerwear", "boxy"]
   },
@@ -184,7 +184,7 @@
     "name": "Knit Polo Shirt",
     "retailer": "Arket",
     "price": "$75",
-    "imageUrl": "https://picsum.photos/seed/c021/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.arket.com/en_usd/search?q=knit+polo",
     "tags": ["preppy", "classic", "minimalist", "fitted", "navy", "white", "cream", "blue", "polo", "shirt", "knit"]
   },
@@ -193,7 +193,7 @@
     "name": "Micro-Sling Bag",
     "retailer": "& Other Stories",
     "price": "$55",
-    "imageUrl": "https://picsum.photos/seed/c022/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.stories.com/en_usd/search.html?q=sling+bag",
     "tags": ["minimalist", "casual", "streetwear", "black", "neutral", "compact", "accessories", "bag", "sling", "leather"]
   },
@@ -202,7 +202,7 @@
     "name": "Fitted Mockneck Long-Sleeve",
     "retailer": "COS",
     "price": "$55",
-    "imageUrl": "https://picsum.photos/seed/c023/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.cos.com/en_usd/search.html?q=mockneck+long+sleeve",
     "tags": ["minimalist", "classic", "fitted", "slim", "black", "white", "neutral", "gray", "monochrome", "layered", "mockneck"]
   },
@@ -211,7 +211,7 @@
     "name": "Flared Denim Jeans",
     "retailer": "ZARA",
     "price": "$69",
-    "imageUrl": "https://picsum.photos/seed/c024/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.zara.com/us/en/search?searchTerm=flared+jeans",
     "tags": ["casual", "retro", "bohemian", "flared", "blue", "denim", "jeans", "vintage", "wide-leg"]
   },
@@ -220,7 +220,7 @@
     "name": "Bralette Sports Top",
     "retailer": "Gymshark",
     "price": "$35",
-    "imageUrl": "https://picsum.photos/seed/c025/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.gymshark.com/search?q=sports+bralette",
     "tags": ["athleisure", "fitted", "cropped", "sporty", "black", "monochrome", "bralette", "top", "minimal"]
   },
@@ -229,7 +229,7 @@
     "name": "Suede Chelsea Boots",
     "retailer": "Mango",
     "price": "$129",
-    "imageUrl": "https://picsum.photos/seed/c026/400/500",
+    "imageUrl": null,
     "productUrl": "https://shop.mango.com/us/search?q=suede+chelsea+boots",
     "tags": ["classic", "minimalist", "fitted", "neutral", "brown", "camel", "tan", "boots", "chelsea", "suede", "leather"]
   },
@@ -238,7 +238,7 @@
     "name": "Sheer Layered Maxi Skirt",
     "retailer": "Free People",
     "price": "$118",
-    "imageUrl": "https://picsum.photos/seed/c027/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.freepeople.com/search/?q=sheer+maxi+skirt",
     "tags": ["bohemian", "romantic", "flowy", "layered", "relaxed", "cream", "white", "neutral", "earthy", "skirt", "maxi", "sheer"]
   },
@@ -247,7 +247,7 @@
     "name": "Structured Boxy Blazer",
     "retailer": "& Other Stories",
     "price": "$185",
-    "imageUrl": "https://picsum.photos/seed/c028/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.stories.com/en_usd/search.html?q=boxy+blazer",
     "tags": ["classic", "formal", "tailored", "boxy", "oversized", "neutral", "black", "gray", "cream", "blazer", "layered", "statement"]
   },
@@ -256,7 +256,7 @@
     "name": "Cargo Utility Vest",
     "retailer": "ASOS",
     "price": "$44",
-    "imageUrl": "https://picsum.photos/seed/c029/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.asos.com/search/?q=cargo+utility+vest",
     "tags": ["streetwear", "casual", "boxy", "layered", "neutral", "khaki", "green", "gray", "cargo", "vest", "utility", "oversized"]
   },
@@ -265,7 +265,7 @@
     "name": "Ribbed Tank Top",
     "retailer": "Uniqlo",
     "price": "$19",
-    "imageUrl": "https://picsum.photos/seed/c030/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.uniqlo.com/us/en/search?q=ribbed+tank",
     "tags": ["minimalist", "casual", "fitted", "slim", "white", "black", "neutral", "monochrome", "ribbed", "tank", "layered", "basic"]
   },
@@ -274,7 +274,7 @@
     "name": "Knit Maxi Dress",
     "retailer": "H&M",
     "price": "$59",
-    "imageUrl": "https://picsum.photos/seed/c031/400/500",
+    "imageUrl": null,
     "productUrl": "https://www2.hm.com/en_us/search-results.html?q=knit+maxi+dress",
     "tags": ["casual", "minimalist", "relaxed", "flowy", "neutral", "brown", "cream", "earth", "knit", "dress", "maxi", "cozy"]
   },
@@ -283,7 +283,7 @@
     "name": "Low-Profile Canvas Sneakers",
     "retailer": "Converse",
     "price": "$65",
-    "imageUrl": "https://picsum.photos/seed/c032/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.converse.com/shop/low-top-sneakers",
     "tags": ["casual", "streetwear", "classic", "preppy", "white", "black", "monochrome", "canvas", "sneakers", "low-top", "minimal"]
   },
@@ -292,7 +292,7 @@
     "name": "Cropped Tweed Jacket",
     "retailer": "Anthropologie",
     "price": "$168",
-    "imageUrl": "https://picsum.photos/seed/c033/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.anthropologie.com/search?q=cropped+tweed+jacket",
     "tags": ["classic", "preppy", "elegant", "fitted", "cropped", "layered", "neutral", "cream", "beige", "tweed", "jacket", "statement"]
   },
@@ -301,7 +301,7 @@
     "name": "High-Waist Bike Shorts",
     "retailer": "Gymshark",
     "price": "$40",
-    "imageUrl": "https://picsum.photos/seed/c034/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.gymshark.com/search?q=bike+shorts",
     "tags": ["athleisure", "fitted", "slim", "sporty", "black", "monochrome", "cropped", "shorts", "minimal"]
   },
@@ -310,7 +310,7 @@
     "name": "Embroidered Western Shirt",
     "retailer": "Free People",
     "price": "$98",
-    "imageUrl": "https://picsum.photos/seed/c035/400/500",
+    "imageUrl": null,
     "productUrl": "https://www.freepeople.com/search/?q=embroidered+western+shirt",
     "tags": ["bohemian", "casual", "relaxed", "oversized", "earthy", "earth", "cream", "white", "blue", "embroidered", "shirt", "western", "statement"]
   }
