@@ -38,7 +38,7 @@ if (typeof __DEV__ !== 'undefined' && __DEV__) {
 }
 
 const KNOWN_BAD_PRODUCT_IMAGE_RE =
-  /(?:picsum|unsplash|landscape|ocean|bridge|building|city|mountain|beach|nature|scenery|random)/i;
+  /(?:picsum|unsplash|landscape|landscapes|ocean|oceans|bridge|bridges|building|buildings|cityscape|cityscapes|city|mountain|mountains|beach|beaches|nature|scenery|random|stock-photo|stockphoto)/i;
 
 function normalizeImageUrl(...values) {
   const imageUrl = values.find((value) => typeof value === 'string' && value.trim());
@@ -78,6 +78,8 @@ function normalizeProduct(p, i) {
     imageUrl: normalizeImageUrl(p.imageUrl, p.image_url, p.image),
     imageCategory: inferImageCategory(p),
     productUrl: p.productUrl ?? p.product_url ?? p.url ?? p.purchaseUrl ?? null,
+    purchaseUrl: p.purchaseUrl ?? p.purchase_url ?? p.productUrl ?? p.product_url ?? p.url ?? null,
+    affiliateUrl: p.affiliateUrl ?? p.affiliate_url ?? null,
   };
 }
 

@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const CATALOG_IMAGE_BASE_URL =
+  process.env.CATALOG_IMAGE_BASE_URL || 'https://kscan-app-1.onrender.com';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -64,17 +67,96 @@ const IMAGE_PLACEHOLDER_CATEGORIES = new Set([
 ]);
 
 const CATEGORY_TAG_MAP = [
-  { category: 'footwear', tags: ['sneakers', 'boots'] },
+  { category: 'footwear', tags: ['sneakers', 'sneaker', 'boots', 'boot', 'shoe', 'shoes', 'slipper', 'loafer', 'mule', 'slide', 'sandal', 'clog'] },
   { category: 'outerwear', tags: ['jacket', 'coat', 'blazer', 'vest'] },
-  { category: 'tops', tags: ['shirt', 'hoodie', 'tank', 'polo', 'bralette', 'top', 'cardigan', 'set'] },
+  { category: 'tops', tags: ['shirt', 'hoodie', 'tank', 'polo', 'bralette', 'top', 'cardigan', 'tee', 't-shirt', 'turtleneck', 'mockneck'] },
   { category: 'bottoms', tags: ['jeans', 'trousers', 'shorts', 'skirt', 'pants'] },
-  { category: 'dresses', tags: ['dress'] },
-  { category: 'accessories', tags: ['bag', 'tote', 'beanie'] },
+  { category: 'bottoms', tags: ['bottoms'] },
+  { category: 'dresses', tags: ['dress', 'dresses', 'jumpsuit', 'romper', 'one-piece'] },
+  { category: 'accessories', tags: ['bag', 'tote', 'beanie', 'hat', 'sunglasses', 'belt', 'scarf', 'accessories'] },
 ];
 
-const KNOWN_BAD_IMAGE_RE = /(?:picsum|unsplash|landscape|ocean|bridge|building|city|mountain|beach|nature|scenery|random)/i;
+const CATEGORY_ALIASES = {
+  footwear: 'footwear',
+  shoe: 'footwear',
+  shoes: 'footwear',
+  sneaker: 'footwear',
+  sneakers: 'footwear',
+  boot: 'footwear',
+  boots: 'footwear',
+  slipper: 'footwear',
+  slippers: 'footwear',
+  loafer: 'footwear',
+  loafers: 'footwear',
+  outerwear: 'outerwear',
+  jacket: 'outerwear',
+  jackets: 'outerwear',
+  coat: 'outerwear',
+  coats: 'outerwear',
+  blazer: 'outerwear',
+  blazers: 'outerwear',
+  vest: 'outerwear',
+  tops: 'tops',
+  top: 'tops',
+  shirt: 'tops',
+  shirts: 'tops',
+  hoodie: 'tops',
+  tee: 'tops',
+  sweater: 'tops',
+  knitwear: 'tops',
+  bottoms: 'bottoms',
+  bottom: 'bottoms',
+  pants: 'bottoms',
+  trousers: 'bottoms',
+  jeans: 'bottoms',
+  skirt: 'bottoms',
+  skirts: 'bottoms',
+  shorts: 'bottoms',
+  dress: 'dresses',
+  dresses: 'dresses',
+  jumpsuit: 'dresses',
+  romper: 'dresses',
+  'one-piece': 'dresses',
+  accessory: 'accessories',
+  accessories: 'accessories',
+  bag: 'accessories',
+  tote: 'accessories',
+  hat: 'accessories',
+  belt: 'accessories',
+  sunglasses: 'accessories',
+};
+
+const KNOWN_BAD_IMAGE_RE = /(?:picsum|unsplash|landscape|landscapes|ocean|oceans|bridge|bridges|building|buildings|cityscape|cityscapes|city|mountain|mountains|beach|beaches|nature|scenery|random|stock-photo|stockphoto)/i;
+
+function canonicalCategory(value) {
+  const normalized = String(value || '').toLowerCase().trim();
+  return CATEGORY_ALIASES[normalized] || null;
+}
+
+function categoryForMetadata(metadata) {
+  const words = [
+    metadata?.category,
+    metadata?.itemType,
+    metadata?.item_type,
+    metadata?.style,
+    metadata?.silhouette,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .split(/[\s,/]+/)
+    .filter(Boolean);
+  for (const word of words) {
+    const category = canonicalCategory(word);
+    if (category) return category;
+  }
+  return null;
+}
 
 function imageCategoryForProduct(product) {
+  const explicitCategory = canonicalCategory(product?.category);
+  if (explicitCategory) return explicitCategory;
+
   const tags = Array.isArray(product?.tags) ? product.tags : [];
   const match = CATEGORY_TAG_MAP.find(({ tags: categoryTags }) =>
     tags.some((tag) => categoryTags.includes(tag))
@@ -85,6 +167,7 @@ function imageCategoryForProduct(product) {
 function isUsableProductImageUrl(imageUrl) {
   if (typeof imageUrl !== 'string' || !imageUrl.trim()) return false;
   if (KNOWN_BAD_IMAGE_RE.test(imageUrl)) return false;
+  if (imageUrl.startsWith('/catalog-images/')) return true;
   try {
     const parsed = new URL(imageUrl);
     return parsed.protocol === 'https:' || parsed.protocol === 'http:';
@@ -95,7 +178,10 @@ function isUsableProductImageUrl(imageUrl) {
 
 function shapeProductForResponse(product) {
   const imageCategory = imageCategoryForProduct(product);
-  const imageUrl = isUsableProductImageUrl(product.imageUrl) ? product.imageUrl : null;
+  let imageUrl = isUsableProductImageUrl(product.imageUrl) ? product.imageUrl : null;
+  if (imageUrl?.startsWith('/catalog-images/')) {
+    imageUrl = `${CATALOG_IMAGE_BASE_URL}${imageUrl}`;
+  }
 
   if (product.imageUrl && !imageUrl && process.env.KSCAN_LOG_MATCH !== 'false') {
     console.log(
@@ -109,6 +195,8 @@ function shapeProductForResponse(product) {
     ...rest,
     imageUrl,
     imageCategory: IMAGE_PLACEHOLDER_CATEGORIES.has(imageCategory) ? imageCategory : 'accessories',
+    purchaseUrl: product.purchaseUrl || product.productUrl || null,
+    productUrl: product.productUrl || product.purchaseUrl || null,
   };
 }
 
@@ -181,7 +269,11 @@ const PRIMARY_TAGS = new Set([
   'hoodie', 'blazer', 'sneakers', 'trousers', 'boots', 'cardigan',
   'skirt', 'jeans', 'coat', 'jacket', 'dress', 'shirt', 'bag',
   'tote', 'vest', 'polo', 'tank', 'shorts', 'set', 'beanie',
-  'bralette', 'top', 'pants',
+  'bralette', 'top', 'pants', 'shoe', 'shoes', 'sneaker', 'boot',
+  'slipper', 'slippers', 'loafer', 'loafers', 'mule', 'slide',
+  'sandal', 'clog', 'tee', 't-shirt', 'turtleneck', 'mockneck',
+  'jumpsuit', 'romper', 'one-piece', 'hat', 'sunglasses', 'belt',
+  'scarf', 'cap', 'crossbody', 'balaclava',
 ]);
 
 // Secondary tier: style and aesthetic identity.
@@ -241,10 +333,11 @@ const SILHOUETTE_PRECISION_BONUS = 3.5;
 const NORMALIZATION_MAP = {
   // ── Category expansions: AI uses broad nouns; catalog uses specific item types
   outerwear:   ['jacket', 'coat', 'blazer', 'vest'],
-  footwear:    ['sneakers', 'boots'],
-  tops:        ['shirt', 'hoodie', 'tank', 'polo'],
+  footwear:    ['sneakers', 'boots', 'shoe', 'slipper', 'loafer', 'mule', 'slide'],
+  tops:        ['shirt', 'hoodie', 'tank', 'polo', 'tee', 'cardigan'],
   bottoms:     ['jeans', 'trousers', 'shorts', 'skirt', 'pants'],
-  accessories: ['bag', 'tote', 'beanie'],
+  dresses:     ['dress', 'jumpsuit', 'romper', 'one-piece'],
+  accessories: ['bag', 'tote', 'beanie', 'hat', 'sunglasses', 'belt', 'scarf'],
   knitwear:    ['cardigan', 'hoodie'],
   denim:       ['jeans', 'jacket'],         // "denim" as category, not material
   suiting:     ['blazer', 'trousers'],
@@ -263,12 +356,13 @@ const NORMALIZATION_MAP = {
   flared:      ['wide-leg', 'relaxed'],
 
   // ── Footwear type expansions (missing from original map)
-  slipper:     ['sneakers'],               // closest catalog footwear tag
-  mule:        ['sneakers'],
-  slide:       ['sneakers'],
-  loafer:      ['boots', 'sneakers'],
-  sandal:      ['sneakers'],
-  clog:        ['sneakers'],
+  slipper:     ['slipper', 'shoe'],
+  slippers:    ['slipper', 'shoe'],
+  mule:        ['mule', 'shoe'],
+  slide:       ['slide', 'sandal'],
+  loafer:      ['loafer', 'shoe'],
+  sandal:      ['sandal', 'shoe'],
+  clog:        ['clog', 'mule'],
   heel:        ['boots'],
   pump:        ['boots'],
   sneaker:     ['sneakers'],               // singular form
@@ -341,12 +435,17 @@ function buildKeywords(metadata) {
 
 function matchProducts(metadata, options = {}) {
   const { expandedSet, allKeywords } = buildKeywords(metadata);
+  const requestedCategory = categoryForMetadata(metadata);
+  const eligibleCatalog = requestedCategory
+    ? CATALOG.filter((product) => imageCategoryForProduct(product) === requestedCategory)
+    : CATALOG;
+  const catalogForScoring = eligibleCatalog.length > 0 ? eligibleCatalog : CATALOG;
 
   // itemKeywords drawn from allKeywords so normalization activates category filter.
   // e.g. AI says "outerwear" → expands to ["jacket","coat"] → category filter fires.
   const itemKeywords = allKeywords.filter((kw) => PRIMARY_TAGS.has(kw));
 
-  const scored = CATALOG
+  const scored = catalogForScoring
     .map((product) => {
       // ── Step 1-3: base weighted score, exact bonus, expansion weighting ──
       // Accumulate alongside per-keyword tracking for steps 4-6.
@@ -724,6 +823,13 @@ function parseAIResponse(rawText, context = {}) {
 // (e.g. the Expo Go deep-link or your hosted frontend domain).
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN }));
+app.use(
+  '/catalog-images',
+  express.static(path.join(__dirname, 'assets', 'catalog-images'), {
+    immutable: true,
+    maxAge: '30d',
+  }),
+);
 
 // Body size: 15 MB hard cap. Raw image from expo-image-manipulator at 1024px
 // JPEG quality 0.7 is ~200–400 KB base64-encoded (~1.3× raw), so 15 MB provides

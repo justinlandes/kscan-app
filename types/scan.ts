@@ -5,7 +5,9 @@ export interface Product {
   price: string;
   imageUrl: string | null;
   imageCategory?: string | null;
-  productUrl: string;
+  productUrl?: string | null;
+  purchaseUrl?: string | null;
+  affiliateUrl?: string | null;
 }
 
 export interface AnalysisResult {

@@ -1,317 +1,1214 @@
 [
   {
-    "id": "c001",
-    "name": "Oversized Graphic Hoodie",
-    "retailer": "ASOS",
-    "price": "$52",
-    "imageUrl": null,
-    "productUrl": "https://www.asos.com/search/?q=oversized+graphic+hoodie",
-    "tags": ["streetwear", "oversized", "casual", "boxy", "monochrome", "black", "white", "hoodie", "graphic"]
+    "id": "demo-footwear-001",
+    "name": "Quilted Puffer Slipper",
+    "retailer": "K-SCAN Demo",
+    "price": "$68",
+    "category": "footwear",
+    "color": "Red / Black",
+    "tags": [
+      "slip-on",
+      "puffer",
+      "quilted",
+      "nylon",
+      "slipper",
+      "shoe",
+      "cozy",
+      "outdoor",
+      "athleisure"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Quilted%20Puffer%20Slipper%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Quilted%20Puffer%20Slipper%20footwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c002",
-    "name": "Wide-Leg Cargo Pants",
-    "retailer": "ZARA",
-    "price": "$59",
-    "imageUrl": null,
-    "productUrl": "https://www.zara.com/us/en/search?searchTerm=wide+leg+cargo+pants",
-    "tags": ["streetwear", "casual", "relaxed", "oversized", "neutral", "khaki", "beige", "green", "cargo", "pants"]
+    "id": "demo-footwear-002",
+    "name": "Low-Profile Leather Sneaker",
+    "retailer": "K-SCAN Demo",
+    "price": "$92",
+    "category": "footwear",
+    "color": "White",
+    "tags": [
+      "sneaker",
+      "sneakers",
+      "low-top",
+      "leather",
+      "minimalist",
+      "classic",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Low-Profile%20Leather%20Sneaker%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Low-Profile%20Leather%20Sneaker%20footwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c003",
-    "name": "Air Force 1 Low",
-    "retailer": "Nike",
-    "price": "$110",
-    "imageUrl": null,
-    "productUrl": "https://www.nike.com/search?q=air+force+1",
-    "tags": ["streetwear", "casual", "athleisure", "white", "monochrome", "sneakers", "classic", "low-top"]
-  },
-  {
-    "id": "c004",
-    "name": "Ribbed Slim Turtleneck",
-    "retailer": "COS",
-    "price": "$65",
-    "imageUrl": null,
-    "productUrl": "https://www.cos.com/en_usd/search.html?q=ribbed+turtleneck",
-    "tags": ["minimalist", "fitted", "slim", "neutral", "cream", "beige", "black", "classic", "ribbed", "turtleneck", "knit"]
-  },
-  {
-    "id": "c005",
-    "name": "Linen Relaxed Blazer",
-    "retailer": "Mango",
-    "price": "$89",
-    "imageUrl": null,
-    "productUrl": "https://shop.mango.com/us/search?q=linen+blazer",
-    "tags": ["minimalist", "classic", "tailored", "relaxed", "neutral", "beige", "white", "formal", "linen", "blazer", "layered"]
-  },
-  {
-    "id": "c006",
-    "name": "Oxford Button-Down Shirt",
-    "retailer": "Uniqlo",
-    "price": "$39",
-    "imageUrl": null,
-    "productUrl": "https://www.uniqlo.com/us/en/search?q=oxford+shirt",
-    "tags": ["minimalist", "classic", "preppy", "fitted", "white", "blue", "monochrome", "formal", "tailored", "shirt", "oxford"]
-  },
-  {
-    "id": "c007",
-    "name": "Pleated Wide-Leg Trousers",
-    "retailer": "Arket",
-    "price": "$99",
-    "imageUrl": null,
-    "productUrl": "https://www.arket.com/en_usd/search?q=pleated+trousers",
-    "tags": ["classic", "formal", "tailored", "relaxed", "wide-leg", "neutral", "gray", "black", "minimalist", "trousers", "layered"]
-  },
-  {
-    "id": "c008",
-    "name": "1460 Smooth Leather Boots",
-    "retailer": "Dr. Martens",
-    "price": "$170",
-    "imageUrl": null,
-    "productUrl": "https://www.drmartens.com/us/en_us/search?q=1460+leather+boots",
-    "tags": ["classic", "grunge", "streetwear", "black", "fitted", "statement", "boots", "leather", "lace-up"]
-  },
-  {
-    "id": "c009",
-    "name": "Oversized Wool-Blend Cardigan",
-    "retailer": "H&M",
-    "price": "$49",
-    "imageUrl": null,
-    "productUrl": "https://www2.hm.com/en_us/search-results.html?q=oversized+cardigan",
-    "tags": ["casual", "oversized", "layered", "earth", "neutral", "brown", "camel", "cream", "knit", "cozy", "cardigan"]
-  },
-  {
-    "id": "c010",
-    "name": "Satin Bias-Cut Midi Skirt",
-    "retailer": "Reformation",
-    "price": "$148",
-    "imageUrl": null,
-    "productUrl": "https://www.thereformation.com/search?q=satin+midi+skirt",
-    "tags": ["minimalist", "elegant", "romantic", "relaxed", "flowy", "neutral", "cream", "black", "satin", "skirt", "midi"]
-  },
-  {
-    "id": "c011",
-    "name": "501 Original Straight Jeans",
-    "retailer": "Levi's",
-    "price": "$79",
-    "imageUrl": null,
-    "productUrl": "https://www.levi.com/US/en_US/search?q=501+straight+jeans",
-    "tags": ["casual", "classic", "straight", "relaxed", "blue", "denim", "jeans", "high-rise", "preppy"]
-  },
-  {
-    "id": "c012",
-    "name": "Seamless Training Set",
-    "retailer": "Gymshark",
-    "price": "$90",
-    "imageUrl": null,
-    "productUrl": "https://www.gymshark.com/search?q=seamless+set",
-    "tags": ["athleisure", "casual", "fitted", "monochrome", "black", "navy", "sporty", "matching", "set", "cropped"]
-  },
-  {
-    "id": "c013",
-    "name": "Trench Coat",
-    "retailer": "ZARA",
-    "price": "$139",
-    "imageUrl": null,
-    "productUrl": "https://www.zara.com/us/en/search?searchTerm=trench+coat",
-    "tags": ["classic", "minimalist", "tailored", "layered", "neutral", "beige", "camel", "formal", "trench", "coat", "outerwear"]
-  },
-  {
-    "id": "c014",
-    "name": "Slouchy Ribbed Beanie",
-    "retailer": "ASOS",
-    "price": "$14",
-    "imageUrl": null,
-    "productUrl": "https://www.asos.com/search/?q=slouchy+beanie",
-    "tags": ["streetwear", "casual", "oversized", "monochrome", "black", "gray", "neutral", "accessories", "beanie", "knit", "cozy"]
-  },
-  {
-    "id": "c015",
-    "name": "Structured Leather Tote",
-    "retailer": "Mango",
-    "price": "$79",
-    "imageUrl": null,
-    "productUrl": "https://shop.mango.com/us/search?q=leather+tote",
-    "tags": ["minimalist", "classic", "formal", "neutral", "black", "brown", "camel", "tailored", "bag", "tote", "leather", "accessories"]
-  },
-  {
-    "id": "c016",
-    "name": "Oversized Denim Jacket",
-    "retailer": "Levi's",
-    "price": "$98",
-    "imageUrl": null,
-    "productUrl": "https://www.levi.com/US/en_US/search?q=oversized+denim+jacket",
-    "tags": ["casual", "streetwear", "oversized", "layered", "blue", "denim", "boxy", "jacket", "outerwear", "relaxed"]
-  },
-  {
-    "id": "c017",
-    "name": "High-Neck Floral Midi Dress",
-    "retailer": "Free People",
+    "id": "demo-footwear-003",
+    "name": "Chunky Trail Sneaker",
+    "retailer": "K-SCAN Demo",
     "price": "$128",
-    "imageUrl": null,
-    "productUrl": "https://www.freepeople.com/search/?q=floral+midi+dress",
-    "tags": ["bohemian", "romantic", "flowy", "relaxed", "layered", "floral", "earthy", "earth", "brown", "green", "dress", "midi"]
+    "category": "footwear",
+    "color": "Gray / Lime",
+    "tags": [
+      "sneaker",
+      "sneakers",
+      "trail",
+      "technical",
+      "sporty",
+      "athleisure",
+      "gorpcore"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Chunky%20Trail%20Sneaker%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Chunky%20Trail%20Sneaker%20footwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c018",
-    "name": "Cropped Leather Moto Jacket",
-    "retailer": "ASOS",
-    "price": "$118",
-    "imageUrl": null,
-    "productUrl": "https://www.asos.com/search/?q=cropped+leather+moto+jacket",
-    "tags": ["streetwear", "grunge", "edgy", "fitted", "cropped", "black", "monochrome", "statement", "leather", "jacket", "layered"]
+    "id": "demo-footwear-004",
+    "name": "Chelsea Lug Boot",
+    "retailer": "K-SCAN Demo",
+    "price": "$158",
+    "category": "footwear",
+    "color": "Black",
+    "tags": [
+      "boot",
+      "boots",
+      "chelsea",
+      "lug",
+      "leather",
+      "classic",
+      "edgy"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Chelsea%20Lug%20Boot%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Chelsea%20Lug%20Boot%20footwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c019",
-    "name": "Relaxed Linen Trousers",
-    "retailer": "Uniqlo",
-    "price": "$49",
-    "imageUrl": null,
-    "productUrl": "https://www.uniqlo.com/us/en/search?q=linen+trousers",
-    "tags": ["minimalist", "casual", "relaxed", "wide-leg", "neutral", "white", "beige", "cream", "navy", "linen", "trousers", "summer"]
+    "id": "demo-footwear-005",
+    "name": "Suede Desert Boot",
+    "retailer": "K-SCAN Demo",
+    "price": "$120",
+    "category": "footwear",
+    "color": "Tan",
+    "tags": [
+      "boot",
+      "boots",
+      "suede",
+      "desert",
+      "minimalist",
+      "casual",
+      "neutral"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Suede%20Desert%20Boot%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Suede%20Desert%20Boot%20footwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c020",
+    "id": "demo-footwear-006",
+    "name": "Canvas Slip-On Sneaker",
+    "retailer": "K-SCAN Demo",
+    "price": "$54",
+    "category": "footwear",
+    "color": "Black / White",
+    "tags": [
+      "slip-on",
+      "sneaker",
+      "sneakers",
+      "canvas",
+      "casual",
+      "streetwear"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Canvas%20Slip-On%20Sneaker%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Canvas%20Slip-On%20Sneaker%20footwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-footwear-007",
+    "name": "Penny Loafer",
+    "retailer": "K-SCAN Demo",
+    "price": "$110",
+    "category": "footwear",
+    "color": "Burgundy",
+    "tags": [
+      "loafer",
+      "shoe",
+      "leather",
+      "classic",
+      "preppy",
+      "formal"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Penny%20Loafer%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Penny%20Loafer%20footwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-footwear-008",
+    "name": "Sport Slide Sandal",
+    "retailer": "K-SCAN Demo",
+    "price": "$38",
+    "category": "footwear",
+    "color": "Navy",
+    "tags": [
+      "slide",
+      "sandal",
+      "footwear",
+      "sporty",
+      "casual",
+      "athleisure"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Sport%20Slide%20Sandal%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Sport%20Slide%20Sandal%20footwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-footwear-009",
+    "name": "Platform Mary Jane",
+    "retailer": "K-SCAN Demo",
+    "price": "$96",
+    "category": "footwear",
+    "color": "Black",
+    "tags": [
+      "mary-jane",
+      "shoe",
+      "platform",
+      "leather",
+      "romantic",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Platform%20Mary%20Jane%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Platform%20Mary%20Jane%20footwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-footwear-010",
+    "name": "Insulated Mule Clog",
+    "retailer": "K-SCAN Demo",
+    "price": "$88",
+    "category": "footwear",
+    "color": "Olive",
+    "tags": [
+      "mule",
+      "clog",
+      "slip-on",
+      "insulated",
+      "outdoor",
+      "technical",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/footwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Insulated%20Mule%20Clog%20footwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Insulated%20Mule%20Clog%20footwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-001",
     "name": "Longline Puffer Coat",
-    "retailer": "H&M",
-    "price": "$119",
-    "imageUrl": null,
-    "productUrl": "https://www2.hm.com/en_us/search-results.html?q=longline+puffer+coat",
-    "tags": ["casual", "streetwear", "oversized", "layered", "black", "monochrome", "puffer", "coat", "outerwear", "boxy"]
+    "retailer": "K-SCAN Demo",
+    "price": "$148",
+    "category": "outerwear",
+    "color": "Black",
+    "tags": [
+      "puffer",
+      "coat",
+      "outerwear",
+      "quilted",
+      "oversized",
+      "streetwear",
+      "warm"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Longline%20Puffer%20Coat%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Longline%20Puffer%20Coat%20outerwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c021",
-    "name": "Knit Polo Shirt",
-    "retailer": "Arket",
-    "price": "$75",
-    "imageUrl": null,
-    "productUrl": "https://www.arket.com/en_usd/search?q=knit+polo",
-    "tags": ["preppy", "classic", "minimalist", "fitted", "navy", "white", "cream", "blue", "polo", "shirt", "knit"]
-  },
-  {
-    "id": "c022",
-    "name": "Micro-Sling Bag",
-    "retailer": "& Other Stories",
-    "price": "$55",
-    "imageUrl": null,
-    "productUrl": "https://www.stories.com/en_usd/search.html?q=sling+bag",
-    "tags": ["minimalist", "casual", "streetwear", "black", "neutral", "compact", "accessories", "bag", "sling", "leather"]
-  },
-  {
-    "id": "c023",
-    "name": "Fitted Mockneck Long-Sleeve",
-    "retailer": "COS",
-    "price": "$55",
-    "imageUrl": null,
-    "productUrl": "https://www.cos.com/en_usd/search.html?q=mockneck+long+sleeve",
-    "tags": ["minimalist", "classic", "fitted", "slim", "black", "white", "neutral", "gray", "monochrome", "layered", "mockneck"]
-  },
-  {
-    "id": "c024",
-    "name": "Flared Denim Jeans",
-    "retailer": "ZARA",
-    "price": "$69",
-    "imageUrl": null,
-    "productUrl": "https://www.zara.com/us/en/search?searchTerm=flared+jeans",
-    "tags": ["casual", "retro", "bohemian", "flared", "blue", "denim", "jeans", "vintage", "wide-leg"]
-  },
-  {
-    "id": "c025",
-    "name": "Bralette Sports Top",
-    "retailer": "Gymshark",
-    "price": "$35",
-    "imageUrl": null,
-    "productUrl": "https://www.gymshark.com/search?q=sports+bralette",
-    "tags": ["athleisure", "fitted", "cropped", "sporty", "black", "monochrome", "bralette", "top", "minimal"]
-  },
-  {
-    "id": "c026",
-    "name": "Suede Chelsea Boots",
-    "retailer": "Mango",
-    "price": "$129",
-    "imageUrl": null,
-    "productUrl": "https://shop.mango.com/us/search?q=suede+chelsea+boots",
-    "tags": ["classic", "minimalist", "fitted", "neutral", "brown", "camel", "tan", "boots", "chelsea", "suede", "leather"]
-  },
-  {
-    "id": "c027",
-    "name": "Sheer Layered Maxi Skirt",
-    "retailer": "Free People",
+    "id": "demo-outerwear-002",
+    "name": "Cropped Puffer Jacket",
+    "retailer": "K-SCAN Demo",
     "price": "$118",
-    "imageUrl": null,
-    "productUrl": "https://www.freepeople.com/search/?q=sheer+maxi+skirt",
-    "tags": ["bohemian", "romantic", "flowy", "layered", "relaxed", "cream", "white", "neutral", "earthy", "skirt", "maxi", "sheer"]
+    "category": "outerwear",
+    "color": "Red",
+    "tags": [
+      "puffer",
+      "jacket",
+      "outerwear",
+      "cropped",
+      "boxy",
+      "athleisure"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Cropped%20Puffer%20Jacket%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Cropped%20Puffer%20Jacket%20outerwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c028",
-    "name": "Structured Boxy Blazer",
-    "retailer": "& Other Stories",
-    "price": "$185",
-    "imageUrl": null,
-    "productUrl": "https://www.stories.com/en_usd/search.html?q=boxy+blazer",
-    "tags": ["classic", "formal", "tailored", "boxy", "oversized", "neutral", "black", "gray", "cream", "blazer", "layered", "statement"]
+    "id": "demo-outerwear-003",
+    "name": "Relaxed Trench Coat",
+    "retailer": "K-SCAN Demo",
+    "price": "$189",
+    "category": "outerwear",
+    "color": "Camel",
+    "tags": [
+      "trench",
+      "coat",
+      "outerwear",
+      "tailored",
+      "classic",
+      "minimalist"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Relaxed%20Trench%20Coat%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Relaxed%20Trench%20Coat%20outerwear",
+    "affiliateUrl": null
   },
   {
-    "id": "c029",
-    "name": "Cargo Utility Vest",
-    "retailer": "ASOS",
-    "price": "$44",
-    "imageUrl": null,
-    "productUrl": "https://www.asos.com/search/?q=cargo+utility+vest",
-    "tags": ["streetwear", "casual", "boxy", "layered", "neutral", "khaki", "green", "gray", "cargo", "vest", "utility", "oversized"]
-  },
-  {
-    "id": "c030",
-    "name": "Ribbed Tank Top",
-    "retailer": "Uniqlo",
-    "price": "$19",
-    "imageUrl": null,
-    "productUrl": "https://www.uniqlo.com/us/en/search?q=ribbed+tank",
-    "tags": ["minimalist", "casual", "fitted", "slim", "white", "black", "neutral", "monochrome", "ribbed", "tank", "layered", "basic"]
-  },
-  {
-    "id": "c031",
-    "name": "Knit Maxi Dress",
-    "retailer": "H&M",
-    "price": "$59",
-    "imageUrl": null,
-    "productUrl": "https://www2.hm.com/en_us/search-results.html?q=knit+maxi+dress",
-    "tags": ["casual", "minimalist", "relaxed", "flowy", "neutral", "brown", "cream", "earth", "knit", "dress", "maxi", "cozy"]
-  },
-  {
-    "id": "c032",
-    "name": "Low-Profile Canvas Sneakers",
-    "retailer": "Converse",
-    "price": "$65",
-    "imageUrl": null,
-    "productUrl": "https://www.converse.com/shop/low-top-sneakers",
-    "tags": ["casual", "streetwear", "classic", "preppy", "white", "black", "monochrome", "canvas", "sneakers", "low-top", "minimal"]
-  },
-  {
-    "id": "c033",
-    "name": "Cropped Tweed Jacket",
-    "retailer": "Anthropologie",
-    "price": "$168",
-    "imageUrl": null,
-    "productUrl": "https://www.anthropologie.com/search?q=cropped+tweed+jacket",
-    "tags": ["classic", "preppy", "elegant", "fitted", "cropped", "layered", "neutral", "cream", "beige", "tweed", "jacket", "statement"]
-  },
-  {
-    "id": "c034",
-    "name": "High-Waist Bike Shorts",
-    "retailer": "Gymshark",
-    "price": "$40",
-    "imageUrl": null,
-    "productUrl": "https://www.gymshark.com/search?q=bike+shorts",
-    "tags": ["athleisure", "fitted", "slim", "sporty", "black", "monochrome", "cropped", "shorts", "minimal"]
-  },
-  {
-    "id": "c035",
-    "name": "Embroidered Western Shirt",
-    "retailer": "Free People",
+    "id": "demo-outerwear-004",
+    "name": "Oversized Denim Jacket",
+    "retailer": "K-SCAN Demo",
     "price": "$98",
-    "imageUrl": null,
-    "productUrl": "https://www.freepeople.com/search/?q=embroidered+western+shirt",
-    "tags": ["bohemian", "casual", "relaxed", "oversized", "earthy", "earth", "cream", "white", "blue", "embroidered", "shirt", "western", "statement"]
+    "category": "outerwear",
+    "color": "Blue",
+    "tags": [
+      "denim",
+      "jacket",
+      "outerwear",
+      "oversized",
+      "casual",
+      "streetwear"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Oversized%20Denim%20Jacket%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Oversized%20Denim%20Jacket%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-005",
+    "name": "Cropped Leather Moto Jacket",
+    "retailer": "K-SCAN Demo",
+    "price": "$168",
+    "category": "outerwear",
+    "color": "Black",
+    "tags": [
+      "leather",
+      "moto",
+      "jacket",
+      "outerwear",
+      "cropped",
+      "edgy",
+      "grunge"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Cropped%20Leather%20Moto%20Jacket%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Cropped%20Leather%20Moto%20Jacket%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-006",
+    "name": "Structured Wool Blazer",
+    "retailer": "K-SCAN Demo",
+    "price": "$210",
+    "category": "outerwear",
+    "color": "Charcoal",
+    "tags": [
+      "blazer",
+      "outerwear",
+      "wool",
+      "tailored",
+      "formal",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Structured%20Wool%20Blazer%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Structured%20Wool%20Blazer%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-007",
+    "name": "Utility Cargo Vest",
+    "retailer": "K-SCAN Demo",
+    "price": "$76",
+    "category": "outerwear",
+    "color": "Olive",
+    "tags": [
+      "vest",
+      "outerwear",
+      "cargo",
+      "utility",
+      "boxy",
+      "gorpcore"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Utility%20Cargo%20Vest%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Utility%20Cargo%20Vest%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-008",
+    "name": "Fleece Zip Jacket",
+    "retailer": "K-SCAN Demo",
+    "price": "$82",
+    "category": "outerwear",
+    "color": "Cream",
+    "tags": [
+      "fleece",
+      "jacket",
+      "outerwear",
+      "cozy",
+      "casual",
+      "sporty"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Fleece%20Zip%20Jacket%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Fleece%20Zip%20Jacket%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-009",
+    "name": "Quilted Liner Jacket",
+    "retailer": "K-SCAN Demo",
+    "price": "$124",
+    "category": "outerwear",
+    "color": "Sage",
+    "tags": [
+      "quilted",
+      "jacket",
+      "outerwear",
+      "relaxed",
+      "minimalist",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Quilted%20Liner%20Jacket%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Quilted%20Liner%20Jacket%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-outerwear-010",
+    "name": "Rain Shell Jacket",
+    "retailer": "K-SCAN Demo",
+    "price": "$136",
+    "category": "outerwear",
+    "color": "Cobalt",
+    "tags": [
+      "shell",
+      "jacket",
+      "outerwear",
+      "technical",
+      "sporty",
+      "waterproof"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/outerwear.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Rain%20Shell%20Jacket%20outerwear",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Rain%20Shell%20Jacket%20outerwear",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-001",
+    "name": "Oversized Graphic Hoodie",
+    "retailer": "K-SCAN Demo",
+    "price": "$52",
+    "category": "tops",
+    "color": "Black / White",
+    "tags": [
+      "hoodie",
+      "top",
+      "oversized",
+      "graphic",
+      "streetwear",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Oversized%20Graphic%20Hoodie%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Oversized%20Graphic%20Hoodie%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-002",
+    "name": "Ribbed Slim Turtleneck",
+    "retailer": "K-SCAN Demo",
+    "price": "$65",
+    "category": "tops",
+    "color": "Cream",
+    "tags": [
+      "turtleneck",
+      "top",
+      "ribbed",
+      "knit",
+      "slim",
+      "minimalist"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Slim%20Turtleneck%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Slim%20Turtleneck%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-003",
+    "name": "Oxford Button-Down Shirt",
+    "retailer": "K-SCAN Demo",
+    "price": "$39",
+    "category": "tops",
+    "color": "Blue",
+    "tags": [
+      "shirt",
+      "top",
+      "oxford",
+      "button-down",
+      "classic",
+      "preppy"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Oxford%20Button-Down%20Shirt%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Oxford%20Button-Down%20Shirt%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-004",
+    "name": "Knit Polo Shirt",
+    "retailer": "K-SCAN Demo",
+    "price": "$75",
+    "category": "tops",
+    "color": "Navy",
+    "tags": [
+      "polo",
+      "shirt",
+      "top",
+      "knit",
+      "classic",
+      "preppy"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Knit%20Polo%20Shirt%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Knit%20Polo%20Shirt%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-005",
+    "name": "Fitted Mockneck Long-Sleeve",
+    "retailer": "K-SCAN Demo",
+    "price": "$55",
+    "category": "tops",
+    "color": "Black",
+    "tags": [
+      "mockneck",
+      "top",
+      "fitted",
+      "slim",
+      "minimalist",
+      "layered"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Fitted%20Mockneck%20Long-Sleeve%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Fitted%20Mockneck%20Long-Sleeve%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-006",
+    "name": "Ribbed Tank Top",
+    "retailer": "K-SCAN Demo",
+    "price": "$19",
+    "category": "tops",
+    "color": "White",
+    "tags": [
+      "tank",
+      "top",
+      "ribbed",
+      "fitted",
+      "basic",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Tank%20Top%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Tank%20Top%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-007",
+    "name": "Bralette Sports Top",
+    "retailer": "K-SCAN Demo",
+    "price": "$35",
+    "category": "tops",
+    "color": "Black",
+    "tags": [
+      "bralette",
+      "sports-bra",
+      "top",
+      "cropped",
+      "sporty",
+      "athleisure"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Bralette%20Sports%20Top%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Bralette%20Sports%20Top%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-008",
+    "name": "Embroidered Western Shirt",
+    "retailer": "K-SCAN Demo",
+    "price": "$98",
+    "category": "tops",
+    "color": "Ivory",
+    "tags": [
+      "shirt",
+      "top",
+      "western",
+      "embroidered",
+      "bohemian",
+      "relaxed"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Embroidered%20Western%20Shirt%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Embroidered%20Western%20Shirt%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-009",
+    "name": "Oversized Wool Cardigan",
+    "retailer": "K-SCAN Demo",
+    "price": "$74",
+    "category": "tops",
+    "color": "Camel",
+    "tags": [
+      "cardigan",
+      "top",
+      "knit",
+      "oversized",
+      "cozy",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Oversized%20Wool%20Cardigan%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Oversized%20Wool%20Cardigan%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-tops-010",
+    "name": "Boxy Cropped Tee",
+    "retailer": "K-SCAN Demo",
+    "price": "$28",
+    "category": "tops",
+    "color": "Heather Gray",
+    "tags": [
+      "tee",
+      "t-shirt",
+      "top",
+      "boxy",
+      "cropped",
+      "streetwear",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/tops.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Boxy%20Cropped%20Tee%20tops",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Boxy%20Cropped%20Tee%20tops",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-001",
+    "name": "Wide-Leg Cargo Pants",
+    "retailer": "K-SCAN Demo",
+    "price": "$59",
+    "category": "bottoms",
+    "color": "Khaki",
+    "tags": [
+      "pants",
+      "cargo",
+      "bottoms",
+      "wide-leg",
+      "relaxed",
+      "streetwear"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Wide-Leg%20Cargo%20Pants%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Wide-Leg%20Cargo%20Pants%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-002",
+    "name": "Pleated Wide-Leg Trousers",
+    "retailer": "K-SCAN Demo",
+    "price": "$99",
+    "category": "bottoms",
+    "color": "Charcoal",
+    "tags": [
+      "trousers",
+      "bottoms",
+      "pleated",
+      "wide-leg",
+      "tailored",
+      "formal"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Pleated%20Wide-Leg%20Trousers%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Pleated%20Wide-Leg%20Trousers%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-003",
+    "name": "501 Straight Jeans",
+    "retailer": "K-SCAN Demo",
+    "price": "$79",
+    "category": "bottoms",
+    "color": "Faded Blue",
+    "tags": [
+      "jeans",
+      "denim",
+      "bottoms",
+      "straight",
+      "classic",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=501%20Straight%20Jeans%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=501%20Straight%20Jeans%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-004",
+    "name": "Satin Bias Midi Skirt",
+    "retailer": "K-SCAN Demo",
+    "price": "$148",
+    "category": "bottoms",
+    "color": "Black",
+    "tags": [
+      "skirt",
+      "bottoms",
+      "satin",
+      "midi",
+      "flowy",
+      "elegant"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Satin%20Bias%20Midi%20Skirt%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Satin%20Bias%20Midi%20Skirt%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-005",
+    "name": "Relaxed Linen Trousers",
+    "retailer": "K-SCAN Demo",
+    "price": "$49",
+    "category": "bottoms",
+    "color": "Natural",
+    "tags": [
+      "trousers",
+      "bottoms",
+      "linen",
+      "relaxed",
+      "minimalist",
+      "summer"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Relaxed%20Linen%20Trousers%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Relaxed%20Linen%20Trousers%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-006",
+    "name": "Flared Denim Jeans",
+    "retailer": "K-SCAN Demo",
+    "price": "$69",
+    "category": "bottoms",
+    "color": "Indigo",
+    "tags": [
+      "jeans",
+      "denim",
+      "bottoms",
+      "flared",
+      "retro",
+      "bohemian"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Flared%20Denim%20Jeans%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Flared%20Denim%20Jeans%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-007",
+    "name": "Sheer Layered Maxi Skirt",
+    "retailer": "K-SCAN Demo",
+    "price": "$118",
+    "category": "bottoms",
+    "color": "Cream",
+    "tags": [
+      "skirt",
+      "bottoms",
+      "maxi",
+      "sheer",
+      "layered",
+      "romantic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Sheer%20Layered%20Maxi%20Skirt%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Sheer%20Layered%20Maxi%20Skirt%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-008",
+    "name": "High-Waist Bike Shorts",
+    "retailer": "K-SCAN Demo",
+    "price": "$40",
+    "category": "bottoms",
+    "color": "Black",
+    "tags": [
+      "shorts",
+      "bottoms",
+      "bike-shorts",
+      "fitted",
+      "sporty",
+      "athleisure"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=High-Waist%20Bike%20Shorts%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=High-Waist%20Bike%20Shorts%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-009",
+    "name": "Tailored Mini Skirt",
+    "retailer": "K-SCAN Demo",
+    "price": "$58",
+    "category": "bottoms",
+    "color": "Gray",
+    "tags": [
+      "skirt",
+      "bottoms",
+      "mini",
+      "tailored",
+      "preppy",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Tailored%20Mini%20Skirt%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Tailored%20Mini%20Skirt%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-bottoms-010",
+    "name": "Parachute Nylon Pants",
+    "retailer": "K-SCAN Demo",
+    "price": "$84",
+    "category": "bottoms",
+    "color": "Stone",
+    "tags": [
+      "pants",
+      "bottoms",
+      "nylon",
+      "parachute",
+      "relaxed",
+      "technical"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/bottoms.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Parachute%20Nylon%20Pants%20bottoms",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Parachute%20Nylon%20Pants%20bottoms",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-001",
+    "name": "High-Neck Floral Midi Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$128",
+    "category": "dresses",
+    "color": "Green Floral",
+    "tags": [
+      "dress",
+      "dresses",
+      "midi",
+      "floral",
+      "high-neck",
+      "romantic",
+      "bohemian"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=High-Neck%20Floral%20Midi%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=High-Neck%20Floral%20Midi%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-002",
+    "name": "Knit Maxi Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$59",
+    "category": "dresses",
+    "color": "Chocolate",
+    "tags": [
+      "dress",
+      "dresses",
+      "maxi",
+      "knit",
+      "relaxed",
+      "minimalist"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Knit%20Maxi%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Knit%20Maxi%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-003",
+    "name": "Tailored Jumpsuit",
+    "retailer": "K-SCAN Demo",
+    "price": "$142",
+    "category": "dresses",
+    "color": "Black",
+    "tags": [
+      "jumpsuit",
+      "one-piece",
+      "dresses",
+      "tailored",
+      "formal",
+      "minimalist"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Tailored%20Jumpsuit%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Tailored%20Jumpsuit%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-004",
+    "name": "Slip Midi Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$118",
+    "category": "dresses",
+    "color": "Champagne",
+    "tags": [
+      "dress",
+      "dresses",
+      "slip",
+      "satin",
+      "midi",
+      "elegant"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Slip%20Midi%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Slip%20Midi%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-005",
+    "name": "Utility Romper",
+    "retailer": "K-SCAN Demo",
+    "price": "$72",
+    "category": "dresses",
+    "color": "Olive",
+    "tags": [
+      "romper",
+      "one-piece",
+      "dresses",
+      "utility",
+      "casual",
+      "boxy"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Utility%20Romper%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Utility%20Romper%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-006",
+    "name": "Ribbed Tank Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$48",
+    "category": "dresses",
+    "color": "White",
+    "tags": [
+      "dress",
+      "dresses",
+      "tank",
+      "ribbed",
+      "fitted",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Tank%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Tank%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-007",
+    "name": "Smocked Mini Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$88",
+    "category": "dresses",
+    "color": "Red",
+    "tags": [
+      "dress",
+      "dresses",
+      "mini",
+      "smocked",
+      "romantic",
+      "summer"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Smocked%20Mini%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Smocked%20Mini%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-008",
+    "name": "Denim Shirt Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$96",
+    "category": "dresses",
+    "color": "Blue",
+    "tags": [
+      "dress",
+      "dresses",
+      "shirt-dress",
+      "denim",
+      "casual",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Denim%20Shirt%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Denim%20Shirt%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-009",
+    "name": "Wide-Leg Boiler Suit",
+    "retailer": "K-SCAN Demo",
+    "price": "$134",
+    "category": "dresses",
+    "color": "Taupe",
+    "tags": [
+      "jumpsuit",
+      "one-piece",
+      "dresses",
+      "boiler-suit",
+      "wide-leg",
+      "workwear"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Wide-Leg%20Boiler%20Suit%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Wide-Leg%20Boiler%20Suit%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-dresses-010",
+    "name": "Cutout Column Dress",
+    "retailer": "K-SCAN Demo",
+    "price": "$110",
+    "category": "dresses",
+    "color": "Black",
+    "tags": [
+      "dress",
+      "dresses",
+      "column",
+      "cutout",
+      "fitted",
+      "edgy"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/dresses.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Cutout%20Column%20Dress%20dresses",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Cutout%20Column%20Dress%20dresses",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-001",
+    "name": "Slouchy Ribbed Beanie",
+    "retailer": "K-SCAN Demo",
+    "price": "$14",
+    "category": "accessories",
+    "color": "Charcoal",
+    "tags": [
+      "beanie",
+      "hat",
+      "accessories",
+      "ribbed",
+      "knit",
+      "cozy",
+      "streetwear"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Slouchy%20Ribbed%20Beanie%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Slouchy%20Ribbed%20Beanie%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-002",
+    "name": "Structured Leather Tote",
+    "retailer": "K-SCAN Demo",
+    "price": "$79",
+    "category": "accessories",
+    "color": "Black",
+    "tags": [
+      "tote",
+      "bag",
+      "accessories",
+      "structured",
+      "leather",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Structured%20Leather%20Tote%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Structured%20Leather%20Tote%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-003",
+    "name": "Micro Sling Bag",
+    "retailer": "K-SCAN Demo",
+    "price": "$55",
+    "category": "accessories",
+    "color": "Cream",
+    "tags": [
+      "sling",
+      "bag",
+      "accessories",
+      "compact",
+      "minimalist",
+      "casual"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Micro%20Sling%20Bag%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Micro%20Sling%20Bag%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-004",
+    "name": "Oval Sunglasses",
+    "retailer": "K-SCAN Demo",
+    "price": "$42",
+    "category": "accessories",
+    "color": "Tortoise",
+    "tags": [
+      "sunglasses",
+      "accessories",
+      "oval",
+      "retro",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Oval%20Sunglasses%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Oval%20Sunglasses%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-005",
+    "name": "Wide Leather Belt",
+    "retailer": "K-SCAN Demo",
+    "price": "$38",
+    "category": "accessories",
+    "color": "Brown",
+    "tags": [
+      "belt",
+      "accessories",
+      "leather",
+      "wide",
+      "classic",
+      "tailored"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Wide%20Leather%20Belt%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Wide%20Leather%20Belt%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-006",
+    "name": "Canvas Baseball Cap",
+    "retailer": "K-SCAN Demo",
+    "price": "$26",
+    "category": "accessories",
+    "color": "Navy",
+    "tags": [
+      "cap",
+      "hat",
+      "accessories",
+      "canvas",
+      "casual",
+      "sporty"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Canvas%20Baseball%20Cap%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Canvas%20Baseball%20Cap%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-007",
+    "name": "Padded Shoulder Bag",
+    "retailer": "K-SCAN Demo",
+    "price": "$68",
+    "category": "accessories",
+    "color": "Silver",
+    "tags": [
+      "bag",
+      "accessories",
+      "padded",
+      "shoulder",
+      "statement",
+      "streetwear"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Padded%20Shoulder%20Bag%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Padded%20Shoulder%20Bag%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-008",
+    "name": "Silk Square Scarf",
+    "retailer": "K-SCAN Demo",
+    "price": "$48",
+    "category": "accessories",
+    "color": "Ivory / Blue",
+    "tags": [
+      "scarf",
+      "accessories",
+      "silk",
+      "square",
+      "elegant",
+      "classic"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Silk%20Square%20Scarf%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Silk%20Square%20Scarf%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-009",
+    "name": "Minimal Crossbody Bag",
+    "retailer": "K-SCAN Demo",
+    "price": "$64",
+    "category": "accessories",
+    "color": "Black",
+    "tags": [
+      "crossbody",
+      "bag",
+      "accessories",
+      "minimalist",
+      "compact",
+      "leather"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Minimal%20Crossbody%20Bag%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Minimal%20Crossbody%20Bag%20accessories",
+    "affiliateUrl": null
+  },
+  {
+    "id": "demo-accessories-010",
+    "name": "Ribbed Knit Balaclava",
+    "retailer": "K-SCAN Demo",
+    "price": "$36",
+    "category": "accessories",
+    "color": "Oatmeal",
+    "tags": [
+      "balaclava",
+      "hat",
+      "accessories",
+      "knit",
+      "cozy",
+      "technical"
+    ],
+    "imageUrl": "https://kscan-app-1.onrender.com/catalog-images/accessories.png",
+    "purchaseUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Knit%20Balaclava%20accessories",
+    "productUrl": "https://www.google.com/search?tbm=shop&q=Ribbed%20Knit%20Balaclava%20accessories",
+    "affiliateUrl": null
   }
 ]

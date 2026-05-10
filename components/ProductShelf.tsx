@@ -19,6 +19,8 @@ export interface Product {
   imageUrl?:   string | null;
   imageCategory?: string | null;
   productUrl?: string | null;
+  purchaseUrl?: string | null;
+  affiliateUrl?: string | null;
 }
 
 interface ProductShelfProps {
@@ -130,7 +132,8 @@ export function ProductShelf({ products }: ProductShelfProps) {
         contentContainerStyle={styles.scrollContent}
       >
         {products.map((p, i) => {
-          const hasLink = !!p.productUrl;
+          const purchaseUrl = p.affiliateUrl || p.productUrl || p.purchaseUrl || null;
+          const hasLink = !!purchaseUrl;
           const productKey = p.id ?? String(i);
           const imageCategory = normalizeImageCategory(p.imageCategory);
           const showImage = !!p.imageUrl && !failedImages[productKey];
@@ -148,7 +151,7 @@ export function ProductShelf({ products }: ProductShelfProps) {
             <TouchableOpacity
               key={productKey}
               style={[styles.card, !hasLink && styles.cardNoLink]}
-              onPress={() => handleLinkPress(p.productUrl)}
+              onPress={() => handleLinkPress(purchaseUrl)}
               activeOpacity={hasLink ? 0.78 : 1}
             >
               {showImage ? (
