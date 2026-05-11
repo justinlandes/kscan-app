@@ -19,7 +19,8 @@
         {
           "cameraPermission": "K Scan uses your camera to photograph your outfit for style analysis."
         }
-      ]
+      ],
+      "expo-router"
     ],
     "android": {
       "package": "com.kscanai.app",

@@ -10,3 +10,13 @@ node_modules
 /test-*.js
 /metro.log
 /server.log
+
+.expo/
+
+API Keys.docx
+
+*Keys*.docx
+
+*keys*.docx
+
+*.secret.*
