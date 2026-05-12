@@ -1,10 +1,15 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 export default function Home() {
   return (
     <View testID="router-home-screen" style={styles.container}>
       <Text style={styles.title}>K SCAN AI</Text>
       <Text style={styles.subtitle}>STYLE-PARSE ENGINE READY</Text>
+
+      <Pressable testID="start-scan-button" style={styles.button} onPress={() => router.push('/scan')}>
+        <Text style={styles.buttonText}>START SCAN</Text>
+      </Pressable>
     </View>
   );
 }
@@ -29,5 +34,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 2,
     textTransform: 'uppercase'
+  },
+  button: {
+    marginTop: 36,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });
