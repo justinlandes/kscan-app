@@ -726,16 +726,31 @@ function parseFashionObject(parsed) {
     metadataSource.closure,
   );
 
-  const hasFashionShape =
-    type.includes('fashion') ||
-    parsed.result !== undefined ||
-    parsed.metadata ||
-    category ||
-    itemType ||
-    color ||
-    material ||
-    style ||
-    silhouette;
+  const hasAttributeEvidence = Boolean(
+    category || itemType || color || material || style || silhouette,
+  );
+
+  const narrative = firstString(parsed.result, parsed.analysis, parsed.description, parsed.summary);
+  const hasSubstantiveNarrative = narrative.length >= 40;
+
+  const fashionTypeKeyword =
+    type.includes('fashion') &&
+    !type.includes('non-fashion') &&
+    !type.includes('non_fashion');
+
+  // Model sometimes returns the JSON template with type:"fashion" but no usable
+  // metadata (e.g. a coffee mug). That must not become an empty "fashion" API
+  // response — normalize to explicit non-fashion per API contract.
+  if (fashionTypeKeyword && !hasAttributeEvidence && !hasSubstantiveNarrative) {
+    return {
+      type: 'non-fashion',
+      message:
+        firstString(parsed.message, parsed.reason, parsed.description, narrative) ||
+        'This does not appear to be a fashion item.',
+    };
+  }
+
+  const hasFashionShape = hasAttributeEvidence || hasSubstantiveNarrative;
 
   if (!hasFashionShape) return null;
 
@@ -748,6 +763,7 @@ function parseFashionObject(parsed) {
   ].filter(Boolean).join(', ');
 
   return {
+    type: 'fashion',
     result: firstString(parsed.result, parsed.analysis, parsed.description, parsed.summary) || generatedResult,
     metadata: {
       category,
@@ -798,7 +814,7 @@ function parseAIResponse(rawText, context = {}) {
 
   const metadata = parseMetadata(text);
   if (metadata.category || metadata.color || metadata.silhouette) {
-    return { result: stripMetadataFromResult(text) || text, metadata };
+    return { type: 'fashion', result: stripMetadataFromResult(text) || text, metadata };
   }
 
   // Attempt 5: unstructured prose — use the whole response as the result text.
@@ -810,6 +826,7 @@ function parseAIResponse(rawText, context = {}) {
       preview: previewProviderText(text, 500),
     });
     return {
+      type:     'fashion',
       result:   text,
       metadata: { category: '', color: '', silhouette: '' },
     };

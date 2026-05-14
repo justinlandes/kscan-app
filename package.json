@@ -5,6 +5,7 @@
   "scripts": {
     "server": "node server.js",
     "test:privacy": "node --test __tests__/privacyPolicy.test.js",
+    "test:analyze-contract": "node --test __tests__/analyzeContract.test.js",
     "start": "expo start",
     "start:server": "node server.js",
     "start:android": "EXPO_PUBLIC_API_URL=http://10.0.2.2:3001 expo start",
