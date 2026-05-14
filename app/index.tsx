@@ -10,6 +10,10 @@ export default function Home() {
       <Pressable testID="start-scan-button" style={styles.button} onPress={() => router.push('/scan')}>
         <Text style={styles.buttonText}>START SCAN</Text>
       </Pressable>
+
+      <Pressable testID="privacy-button" style={styles.secondaryButton} onPress={() => router.push('/privacy')}>
+        <Text style={styles.secondaryButtonText}>PRIVACY CONTROL</Text>
+      </Pressable>
     </View>
   );
 }
@@ -46,6 +50,21 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  secondaryButton: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#3F3F46',
+    borderRadius: 999,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+  },
+  secondaryButtonText: {
+    color: '#A1A1AA',
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 2,
     textTransform: 'uppercase',
