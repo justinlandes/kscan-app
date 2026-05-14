@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
@@ -8,25 +8,34 @@ interface PrivacyToggleProps {
   body: string;
   value: boolean;
   disabled?: boolean;
+  /** Saving to backend or local store — shows inline busy state */
+  busy?: boolean;
   onChange: (value: boolean) => void;
 }
 
-export function PrivacyToggle({ title, body, value, disabled, onChange }: PrivacyToggleProps) {
+export function PrivacyToggle({ title, body, value, disabled, busy, onChange }: PrivacyToggleProps) {
+  const locked = Boolean(disabled) || Boolean(busy);
   return (
     <Pressable
       accessibilityRole="switch"
-      accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
-      disabled={disabled}
+      accessibilityState={{ checked: value, disabled: locked }}
+      disabled={locked}
       onPress={() => onChange(!value)}
-      style={[styles.row, value && styles.rowActive, disabled && styles.rowDisabled]}
+      style={[styles.row, value && styles.rowActive, locked && styles.rowDisabled]}
     >
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
       </View>
-      <View style={[styles.track, value && styles.trackActive, disabled && styles.trackDisabled]}>
-        <View style={[styles.thumb, value && styles.thumbActive]} />
-      </View>
+      {busy ? (
+        <View style={styles.busySlot}>
+          <ActivityIndicator size="small" color="#00FFFF" />
+        </View>
+      ) : (
+        <View style={[styles.track, value && styles.trackActive, locked && styles.trackDisabled]}>
+          <View style={[styles.thumb, value && styles.thumbActive]} />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -78,6 +87,12 @@ const styles = StyleSheet.create({
   },
   trackDisabled: {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  busySlot: {
+    width: 52,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   thumb: {
     width: 22,

@@ -56,6 +56,11 @@ export function isPrivacyBackendConfigured() {
   return getSupabaseConfig().configured;
 }
 
+/** URL + anon key present (project reachable); does not imply an authenticated user session. */
+export function isSupabaseProjectConfigured() {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+}
+
 export async function ensurePrivacySettings() {
   return supabaseFetch('/rest/v1/rpc/ensure_privacy_settings', {
     method: 'POST',

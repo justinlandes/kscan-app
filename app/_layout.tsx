@@ -1,11 +1,10 @@
 import { Stack } from 'expo-router';
-import { PrivacyBootstrap } from '../components/PrivacyBootstrap';
+import { PrivacyPreferencesProvider } from '../contexts/PrivacyPreferencesContext';
 
 export default function Layout() {
   return (
-    <>
-      <PrivacyBootstrap />
+    <PrivacyPreferencesProvider>
       <Stack screenOptions={{ headerShown: false }} />
-    </>
+    </PrivacyPreferencesProvider>
   );
 }

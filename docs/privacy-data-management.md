@@ -2,7 +2,7 @@
 
 ## Mobile initialization
 
-The app calls `public.ensure_privacy_settings()` from `components/PrivacyBootstrap.tsx` on authenticated app mount and again before `app/privacy.tsx` reads privacy state. The RPC verifies `auth.uid()`, inserts `privacy_settings` with `ON CONFLICT (user_id) DO NOTHING`, applies under-16 sale/sharing defaults, and returns the row.
+The app calls `public.ensure_privacy_settings()` from `PrivacyPreferencesProvider` (see `contexts/PrivacyPreferencesContext.tsx`) when a Supabase user JWT is configured (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and `EXPO_PUBLIC_SUPABASE_ACCESS_TOKEN` or a future auth session). The RPC verifies `auth.uid()`, inserts `privacy_settings` with `ON CONFLICT (user_id) DO NOTHING`, applies under-16 sale/sharing defaults, and returns the row.
 
 The current checkout does not include a Supabase Auth client. `services/supabasePrivacy.js` is implemented against Supabase REST and Edge Function endpoints and expects:
 

@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Image,
   ActivityIndicator,
   Animated,
@@ -461,6 +462,18 @@ export default function App() {
               </View>
             )}
           </View>
+
+          {status === 'idle' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Privacy and data choices"
+              onPress={() => router.push('/privacy')}
+              style={styles.privacyFooter}
+              hitSlop={12}
+            >
+              <Text style={styles.privacyFooterText}>Privacy & Data</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -800,6 +813,22 @@ const styles = StyleSheet.create({
     paddingTop: LAYOUT.cameraFooterPaddingTop,
     alignItems: 'center',
     backgroundColor: COLORS.overlay,
+  },
+  privacyFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: LAYOUT.cameraFooterPaddingBottom + 112,
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+  },
+  privacyFooterText: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: COLORS.textTertiary,
+    opacity: 0.72,
+    textTransform: 'uppercase',
   },
   previewScreen: {
     flex: 1,

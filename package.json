@@ -4,7 +4,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "server": "node server.js",
-    "test:privacy": "node --test __tests__/privacyPolicy.test.js",
+    "test:privacy": "node --test __tests__/privacyPolicy.test.js __tests__/privacyPreferenceMerge.test.js",
     "test:analyze-contract": "node --test __tests__/analyzeContract.test.js",
     "start": "expo start",
     "start:server": "node server.js",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "cors": "^2.8.6",
     "dotenv": "^16.4.5",
     "expo": "~54.0.34",

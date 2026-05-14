@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,27 +14,24 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 
 import { PrivacyToggle } from '../components/PrivacyToggle';
+import { canToggleSaleSharing } from '../services/privacyPolicy';
 import {
-  buildPrivacyUpdatePatch,
-  canToggleSaleSharing,
-  normalizePrivacySettings,
-} from '../services/privacyPolicy';
-import {
-  ensurePrivacySettings,
-  fetchProfile,
-  isPrivacyBackendConfigured,
   requestCorrection,
   requestDataExport,
   requestDeletion,
-  updatePrivacySettings,
 } from '../services/supabasePrivacy';
+import { usePrivacyPreferences } from '../contexts/PrivacyPreferencesContext';
 import { COLORS, LAYOUT, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 const PRIVACY_COPY = {
-  saleSharing:
-    'Opt out of sale or sharing of personal information linked to style preferences, app interactions, and account-level behavioral data.',
-  sensitive:
+  saleRemote:
+    'When enabled, K Scan will treat your account as opted out of applicable data sale or sharing preferences, subject to our Privacy Policy and legal obligations.',
+  saleLocal:
+    'This preference is currently saved on this device. Account-level syncing will activate when sign-in support is available.',
+  sensitiveRemote:
     'Limit sensitive processing where applicable. Operational diagnostics and security events may still be processed where permitted.',
+  sensitiveLocal:
+    'Stored on this device until your account is connected. Operational diagnostics on this device may still run where permitted.',
   aggregate:
     'Aggregated or deidentified trend reports are managed separately from transfers of user-linked personal information.',
   scans:
@@ -45,53 +42,43 @@ const PRIVACY_COPY = {
 
 export default function PrivacyScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<any>({ age_group: 'unknown', account_status: 'active' });
-  const [settings, setSettings] = useState<any>(null);
+  const {
+    bootStatus,
+    remoteSessionActive,
+    supabaseProjectPresent,
+    remoteFetchFailed,
+    remoteFetchError,
+    preferenceSource,
+    normalized,
+    saving,
+    persistPreference,
+  } = usePrivacyPreferences();
+
   const [message, setMessage] = useState<string | null>(null);
   const [correctionText, setCorrectionText] = useState('');
 
-  const configured = isPrivacyBackendConfigured();
-  const normalized = useMemo(() => normalizePrivacySettings(settings, profile), [settings, profile]);
   const saleSharingLocked = !canToggleSaleSharing(normalized.age_group);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setMessage(null);
-    try {
-      if (!configured) {
-        setMessage('Sign in is required before mobile privacy controls can sync with Supabase.');
-        return;
-      }
-      const [settingsRow, profileRow] = await Promise.all([ensurePrivacySettings(), fetchProfile()]);
-      setProfile(profileRow ?? { age_group: 'unknown', account_status: 'active' });
-      setSettings(settingsRow);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to load privacy settings.');
-    } finally {
-      setLoading(false);
-    }
-  }, [configured]);
+  const remoteActionsEnabled =
+    remoteSessionActive && !remoteFetchFailed && preferenceSource === 'remote';
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const showSignInHint = supabaseProjectPresent && !remoteSessionActive;
 
-  const persist = async (nextSettings: any) => {
-    setSaving(true);
-    setMessage(null);
-    try {
-      const patch = buildPrivacyUpdatePatch(nextSettings, profile);
-      const updated = await updatePrivacySettings(patch);
-      setSettings(updated ?? { ...settings, ...patch });
-      setMessage('Privacy settings updated.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to update privacy settings.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const saleBody = preferenceSource === 'remote' ? PRIVACY_COPY.saleRemote : PRIVACY_COPY.saleLocal;
+  const sensitiveBody =
+    preferenceSource === 'remote' ? PRIVACY_COPY.sensitiveRemote : PRIVACY_COPY.sensitiveLocal;
+
+  const loadFailureBanner = useMemo(() => {
+    if (!remoteFetchFailed) return null;
+    return (
+      <View style={styles.errorBanner}>
+        <Text style={styles.errorBannerTitle}>Unable to load your privacy preference right now.</Text>
+        <Text style={styles.errorBannerBody}>
+          {remoteFetchError || 'Check your connection and try again.'} Showing the last-known preference saved on this device until the account sync succeeds.
+        </Text>
+      </View>
+    );
+  }, [remoteFetchFailed, remoteFetchError]);
 
   const handleDeletion = () => {
     Alert.alert(
@@ -103,14 +90,11 @@ export default function PrivacyScreen() {
           text: 'Request',
           style: 'destructive',
           onPress: async () => {
-            setSaving(true);
             try {
               const result = await requestDeletion();
               setMessage(result.status === 'already_requested' ? 'Deletion was already requested.' : 'Deletion request submitted.');
             } catch (error) {
               setMessage(error instanceof Error ? error.message : 'Unable to request deletion.');
-            } finally {
-              setSaving(false);
             }
           },
         },
@@ -119,14 +103,11 @@ export default function PrivacyScreen() {
   };
 
   const handleExport = async () => {
-    setSaving(true);
     try {
       await requestDataExport();
-      setMessage('Data export request submitted.');
+      setMessage('Data export request submitted (if your Edge Function is deployed and reachable).');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to request export.');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -135,17 +116,16 @@ export default function PrivacyScreen() {
       setMessage('Describe the account information you want corrected.');
       return;
     }
-    setSaving(true);
     try {
       await requestCorrection({ user_description: correctionText.trim() });
       setCorrectionText('');
-      setMessage('Correction request submitted.');
+      setMessage('Correction request submitted (if your Edge Function is deployed and reachable).');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to request correction.');
-    } finally {
-      setSaving(false);
     }
   };
+
+  const loading = bootStatus === 'loading';
 
   return (
     <View style={styles.root}>
@@ -166,17 +146,28 @@ export default function PrivacyScreen() {
           <Text style={styles.eyebrow}>DATA MANAGEMENT</Text>
           <Text style={styles.title}>Your Privacy Choices</Text>
           <Text style={styles.body}>
-            Manage sale or sharing opt-out, sensitive processing limits, access requests, correction architecture, and deletion requests from the mobile app.
+            Review sale and sharing opt-outs, sensitive processing limits, and account requests. Advanced actions require a live Supabase session and deployed Edge Functions.
           </Text>
         </View>
 
         {loading ? (
           <View style={styles.loadingPanel}>
             <ActivityIndicator size="large" color="#00FFFF" />
+            <Text style={styles.loadingCaption}>Loading your preferences…</Text>
           </View>
         ) : (
           <>
             {message ? <Text style={styles.message}>{message}</Text> : null}
+            {loadFailureBanner}
+
+            {showSignInHint ? (
+              <View style={styles.notice}>
+                <Text style={styles.noticeTitle}>SIGN IN TO SYNC</Text>
+                <Text style={styles.noticeBody}>
+                  Sign in to save privacy preferences across devices. Until an authenticated session is available, only on-device preferences below are applied.
+                </Text>
+              </View>
+            ) : null}
 
             {saleSharingLocked ? (
               <View style={styles.notice}>
@@ -185,28 +176,49 @@ export default function PrivacyScreen() {
               </View>
             ) : null}
 
-            <PrivacyToggle
-              title="Do Not Sell or Share"
-              body={PRIVACY_COPY.saleSharing}
-              value={normalized.opt_out_of_sale}
-              disabled={!configured || saving || saleSharingLocked}
-              onChange={(value) => persist({ ...normalized, opt_out_of_sale: value })}
-            />
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Privacy & Data Choices</Text>
+              <Text style={styles.sectionSubtitle}>
+                {preferenceSource === 'remote'
+                  ? 'These choices sync to your K Scan account via Supabase.'
+                  : 'On-device preferences — not yet synced to an account.'}
+              </Text>
 
-            <PrivacyToggle
-              title="Limit Sensitive Processing"
-              body={PRIVACY_COPY.sensitive}
-              value={normalized.limit_sensitive_processing}
-              disabled={!configured || saving}
-              onChange={(value) => persist({ ...normalized, limit_sensitive_processing: value })}
-            />
+              <PrivacyToggle
+                title="Do Not Sell or Share My Personal Information"
+                body={saleBody}
+                value={normalized.opt_out_of_sale}
+                busy={saving}
+                disabled={saving || saleSharingLocked}
+                onChange={(value) => {
+                  setMessage(null);
+                  void persistPreference({ opt_out_of_sale: value }).catch((error) => {
+                    setMessage(error instanceof Error ? error.message : 'Unable to update preference.');
+                  });
+                }}
+              />
+
+              <PrivacyToggle
+                title="Limit Sensitive Processing"
+                body={sensitiveBody}
+                value={normalized.limit_sensitive_processing}
+                busy={saving}
+                disabled={saving}
+                onChange={(value) => {
+                  setMessage(null);
+                  void persistPreference({ limit_sensitive_processing: value }).catch((error) => {
+                    setMessage(error instanceof Error ? error.message : 'Unable to update preference.');
+                  });
+                }}
+              />
+            </View>
 
             <View style={styles.infoPanel}>
               <Text style={styles.panelTitle}>DATA CATEGORY BOUNDARIES</Text>
               <Text style={styles.panelBody}>{PRIVACY_COPY.aggregate}</Text>
               <Text style={styles.panelBody}>{PRIVACY_COPY.scans}</Text>
               <Text style={styles.panelBody}>
-                Global Privacy Control from web is synchronized through the gpc_web source and should keep sale/sharing opt-out enabled.
+                Global Privacy Control from web is synchronized through the gpc_web source when your account is connected.
               </Text>
               <Text style={styles.panelBody}>
                 GDPR consent requires separate EU/UK logic and is not inferred from California opt-out state.
@@ -214,7 +226,13 @@ export default function PrivacyScreen() {
             </View>
 
             <View style={styles.actions}>
-              <Pressable disabled={!configured || saving} style={styles.secondaryButton} onPress={handleExport}>
+              {!remoteActionsEnabled ? (
+                <Text style={styles.edgeHint}>
+                  Data export, correction, and deletion requests require an authenticated Supabase session and deployed Edge Functions (handle-user-deletion, privacy-data-export, privacy-correction-request). They are not active until those pieces are live in your project.
+                </Text>
+              ) : null}
+
+              <Pressable disabled={!remoteActionsEnabled || saving} style={styles.secondaryButton} onPress={handleExport}>
                 <Text style={styles.secondaryButtonText}>Request Data Export</Text>
               </Pressable>
 
@@ -227,12 +245,12 @@ export default function PrivacyScreen() {
                   multiline
                   style={styles.input}
                 />
-                <Pressable disabled={!configured || saving} style={styles.secondaryButton} onPress={handleCorrection}>
+                <Pressable disabled={!remoteActionsEnabled || saving} style={styles.secondaryButton} onPress={handleCorrection}>
                   <Text style={styles.secondaryButtonText}>Submit Correction Request</Text>
                 </Pressable>
               </View>
 
-              <Pressable disabled={!configured || saving} style={styles.dangerButton} onPress={handleDeletion}>
+              <Pressable disabled={!remoteActionsEnabled || saving} style={styles.dangerButton} onPress={handleDeletion}>
                 <Text style={styles.dangerButtonText}>Request Account Deletion</Text>
               </Pressable>
             </View>
@@ -305,6 +323,11 @@ const styles = StyleSheet.create({
     minHeight: 240,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: SPACING.md,
+  },
+  loadingCaption: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
   },
   message: {
     ...TYPOGRAPHY.bodyStrong,
@@ -314,6 +337,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     padding: SPACING.lg,
     color: COLORS.textPrimary,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.45)',
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(255, 107, 107, 0.08)',
+    padding: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  errorBannerTitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.errorSoft,
+  },
+  errorBannerBody: {
+    ...TYPOGRAPHY.body,
+    fontSize: 13,
+    lineHeight: 20,
   },
   notice: {
     borderWidth: 1,
@@ -329,6 +369,26 @@ const styles = StyleSheet.create({
   },
   noticeBody: {
     ...TYPOGRAPHY.bodyStrong,
+  },
+  sectionCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.lg,
+    gap: SPACING.md,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.title,
+    fontSize: 18,
+    color: COLORS.textPrimary,
+  },
+  sectionSubtitle: {
+    ...TYPOGRAPHY.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
   },
   infoPanel: {
     borderWidth: 1,
@@ -349,6 +409,13 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: SPACING.md,
+  },
+  edgeHint: {
+    ...TYPOGRAPHY.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.textTertiary,
+    marginBottom: SPACING.sm,
   },
   secondaryButton: {
     minHeight: 50,
