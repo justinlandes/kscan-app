@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_URL = process.env.KSCAN_API_URL || 'http://localhost:3001/api/analyze';
+const API_URL =
+  process.env.KSCAN_API_URL || 'https://kscan-app-1.onrender.com/api/analyze';
 const FIXTURE_DIR = path.join(__dirname, '..', 'assets', 'qa_fixtures');
 
 const fixtures = [

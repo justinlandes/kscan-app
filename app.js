@@ -218,8 +218,9 @@ export default function App() {
   }, [permission?.granted, isCameraReady]);
 
   useEffect(() => {
+    if (typeof __DEV__ === 'undefined' || !__DEV__) return;
     console.log(`[K-SCAN] Build: ${APP_BUILD_LABEL}`);
-    console.log('[K-SCAN] __DEV__:', typeof __DEV__ !== 'undefined' && __DEV__);
+    console.log('[K-SCAN] __DEV__:', true);
     console.log(`[K-SCAN] DEV_FALLBACK: ${DEV_FALLBACK_STATUS}`);
     console.log(`[K-SCAN] Static QA path enabled: ${QA_TOOLS_ENABLED}`);
     if (QA_TOOLS_ENABLED) console.log('[K-SCAN] API URL:', getApiBaseUrl());

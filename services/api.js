@@ -3,22 +3,20 @@
  *
  * Base URL resolution (in priority order):
  *   1. EXPO_PUBLIC_API_URL in .env (set per environment — see README)
- *   2. Android emulator default: http://10.0.2.2:3001
- *   3. Fallback: http://localhost:3001 (iOS simulator only)
+ *   2. Hosted beta backend: https://kscan-app-1.onrender.com
  *
  * Environment guide:
  *   Local dev (iOS sim):    EXPO_PUBLIC_API_URL=http://localhost:3001
  *   Local dev (Android em): EXPO_PUBLIC_API_URL=http://10.0.2.2:3001
  *   Physical device:        EXPO_PUBLIC_API_URL=http://<your-LAN-IP>:3001
- *   Hosted beta backend:    EXPO_PUBLIC_API_URL=https://api.yourdomain.com
+ *   Hosted beta backend:    EXPO_PUBLIC_API_URL=https://kscan-app-1.onrender.com
  */
-
-import { Platform } from 'react-native';
 
 // 25 seconds — must exceed the server's 15-second AI timeout plus network
 // round-trip, so the client waits for the server's own error response rather
 // than timing out first and showing a generic network error.
 const ANALYZE_TIMEOUT_MS = 25000;
+const HOSTED_BETA_BASE_URL = 'https://kscan-app-1.onrender.com';
 
 function userSafeError(message, userMessage) {
   const error = new Error(message);
@@ -29,9 +27,7 @@ function userSafeError(message, userMessage) {
 function resolveBaseUrl() {
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl && envUrl.trim()) return envUrl.trim();
-  // Android emulator loopback — 10.0.2.2 maps to the host machine
-  if (Platform.OS === 'android') return 'http://10.0.2.2:3001';
-  return 'http://localhost:3001';
+  return HOSTED_BETA_BASE_URL;
 }
 
 // Resolved once at module load — log it once for easy debugging
