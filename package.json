@@ -6,6 +6,7 @@
     "server": "node server.js",
     "test:privacy": "node --test __tests__/privacyPolicy.test.js __tests__/privacyPreferenceMerge.test.js",
     "test:auth-privacy": "node --test __tests__/authPrivacy.test.js",
+    "verify:supabase": "node scripts/verify-supabase.js",
     "test:analyze-contract": "node --test __tests__/analyzeContract.test.js",
     "start": "expo start",
     "start:server": "node server.js",

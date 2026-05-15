@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -27,11 +27,16 @@ export default function AuthScreen() {
   const [step, setStep] = useState<AuthStep>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  // If already signed in, go back
-  if (isAuthenticated) {
-    router.back();
-    return null;
-  }
+  // Redirect away if the session appears (e.g. restored on boot or from another sign-in path)
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [isAuthenticated, router]);
 
   const busy = step === 'signing-in';
 

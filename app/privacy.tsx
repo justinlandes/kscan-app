@@ -57,7 +57,7 @@ const SYNC_STATUS_COLORS: Record<string, string> = {
 
 export default function PrivacyScreen() {
   const router = useRouter();
-  const { isAuthenticated, user, signOut } = useAuthSession();
+  const { isAuthenticated, user, signOut, isRefreshing } = useAuthSession();
   const {
     mode,
     syncStatus,
@@ -85,8 +85,8 @@ export default function PrivacyScreen() {
   const sensitiveBody =
     preferenceSource === 'remote' ? PRIVACY_COPY.sensitiveRemote : PRIVACY_COPY.sensitiveLocal;
 
-  // Writes must be blocked while auth is refreshing or the session is booting
-  const writesBlocked = mode === 'booting' || saving;
+  // Block writes while session is booting, mid-refresh, or a write is in flight
+  const writesBlocked = mode === 'booting' || saving || isRefreshing;
 
   const loadFailureBanner = useMemo(() => {
     if (!remoteFetchFailed) return null;

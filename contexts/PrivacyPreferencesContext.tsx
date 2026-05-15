@@ -145,10 +145,18 @@ export function PrivacyPreferencesProvider({ children }: { children: React.React
 
     if (auth.isAuthenticated && !auth.isRefreshing) {
       try {
-        const [settingsRow, profileRow] = await Promise.all([
-          ensurePrivacySettings(),
-          fetchProfile(),
-        ]);
+        // ensurePrivacySettings is load-bearing — failure means remote mode is unavailable.
+        // fetchProfile is best-effort: a missing `profiles` table must not block privacy loading.
+        const settingsRow = await ensurePrivacySettings();
+        let profileRow: Record<string, unknown> = DEFAULT_PROFILE;
+        try {
+          const fetched = await fetchProfile();
+          if (fetched && typeof fetched === 'object' && 'age_group' in fetched) {
+            profileRow = fetched as Record<string, unknown>;
+          }
+        } catch {
+          // profiles table absent or RLS gap — proceed with default profile
+        }
 
         const remote = (settingsRow ?? null) as Record<string, unknown> | null;
 
@@ -161,12 +169,12 @@ export function PrivacyPreferencesProvider({ children }: { children: React.React
           // Merge: local ON propagates to remote if remote is OFF
           if (mergeNeedsWrite(local, remotePrefs)) {
             const merged = mergePrivacyPreferences(local, remotePrefs);
-            const patch = buildPrivacyUpdatePatch(merged, profileRow ?? DEFAULT_PROFILE);
+            const patch = buildPrivacyUpdatePatch(merged, profileRow);
             try {
               const updated = await updatePrivacySettings(patch);
               setRemoteRow((updated ?? { ...remote, ...patch }) as Record<string, unknown>);
             } catch {
-              // Merge write failed; use remote row as-is, prefer privacy-protective value locally
+              // Merge write failed; reflect merged value locally without remote confirmation
               setRemoteRow({ ...remote, ...mergePrivacyPreferences(local, remotePrefs) } as Record<string, unknown>);
             }
           } else {
@@ -176,14 +184,10 @@ export function PrivacyPreferencesProvider({ children }: { children: React.React
           setRemoteRow(null);
         }
 
-        setProfile(
-          profileRow && typeof profileRow === 'object' && 'age_group' in profileRow
-            ? {
-                age_group: String((profileRow as { age_group?: string }).age_group || 'unknown'),
-                account_status: (profileRow as { account_status?: string }).account_status,
-              }
-            : DEFAULT_PROFILE,
-        );
+        setProfile({
+          age_group: String((profileRow as { age_group?: string }).age_group || 'unknown'),
+          account_status: (profileRow as { account_status?: string }).account_status,
+        });
         setSyncStatus('synced');
       } catch (error) {
         setRemoteRow(null);
