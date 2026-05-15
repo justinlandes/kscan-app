@@ -38,9 +38,36 @@ function buildPrivacyUpdatePatch(nextSettings, profile) {
   };
 }
 
+/**
+ * Merges local device preferences with remote account preferences.
+ * Always preserves the more privacy-protective choice.
+ * Local OFF never overwrites remote ON.
+ */
+function mergePrivacyPreferences(local, remote) {
+  return {
+    opt_out_of_sale: Boolean(local.opt_out_of_sale) || Boolean(remote.opt_out_of_sale),
+    limit_sensitive_processing:
+      Boolean(local.limit_sensitive_processing) || Boolean(remote.limit_sensitive_processing),
+  };
+}
+
+/**
+ * Returns true when merging local into remote would change the remote values,
+ * indicating a write is needed to persist the merge outcome.
+ */
+function mergeNeedsWrite(local, remote) {
+  const merged = mergePrivacyPreferences(local, remote);
+  return (
+    merged.opt_out_of_sale !== Boolean(remote.opt_out_of_sale) ||
+    merged.limit_sensitive_processing !== Boolean(remote.limit_sensitive_processing)
+  );
+}
+
 module.exports = {
   isKnownMinor,
   canToggleSaleSharing,
   normalizePrivacySettings,
   buildPrivacyUpdatePatch,
+  mergePrivacyPreferences,
+  mergeNeedsWrite,
 };

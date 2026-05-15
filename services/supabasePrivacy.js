@@ -1,35 +1,66 @@
+import { supabase } from './supabaseClient';
+
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-let accessToken = process.env.EXPO_PUBLIC_SUPABASE_ACCESS_TOKEN;
 
-export function setPrivacyAccessToken(token) {
-  accessToken = token;
+// DEV-ONLY: A short-lived access token for internal testing without a real sign-in flow.
+// Real account persistence always uses the Supabase Auth session token.
+// If a real session exists, it takes precedence over this value.
+const _devTokenOverride = process.env.EXPO_PUBLIC_SUPABASE_ACCESS_TOKEN;
+
+/**
+ * @deprecated The app now uses the Supabase Auth session token automatically.
+ * Calling this function has no effect in production.
+ */
+export function setPrivacyAccessToken(_token) {
+  console.warn(
+    '[KScan] setPrivacyAccessToken() is deprecated. ' +
+    'The app now uses the Supabase Auth session token automatically.'
+  );
 }
 
-function getSupabaseConfig() {
-  return {
-    url: SUPABASE_URL,
-    anonKey: SUPABASE_ANON_KEY,
-    accessToken,
-    configured: Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && accessToken),
-  };
+/** True when Supabase URL + anon key are configured (project is reachable). */
+export function isSupabaseProjectConfigured() {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
-function assertConfigured() {
-  const config = getSupabaseConfig();
-  if (!config.configured) {
-    throw new Error('Supabase privacy controls require EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, and an authenticated access token.');
+/**
+ * @deprecated Use isSupabaseProjectConfigured() and check auth session state.
+ * The manual-token path is no longer the production path.
+ */
+export function isPrivacyBackendConfigured() {
+  return false;
+}
+
+async function resolveAccessToken() {
+  // Always prefer the real session token — never stale after a token refresh.
+  const { data } = await supabase.auth.getSession();
+  if (data.session?.access_token) {
+    return data.session.access_token;
   }
-  return config;
+  // Dev-only fallback: short-lived token pasted during internal testing.
+  if (_devTokenOverride) {
+    console.warn('[KScan] DEV TOKEN IN USE — not a real session. Do not use in production.');
+    return _devTokenOverride;
+  }
+  return null;
 }
 
 async function supabaseFetch(path, options = {}) {
-  const config = assertConfigured();
-  const response = await fetch(`${config.url}${path}`, {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error(
+      'Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.'
+    );
+  }
+  const token = await resolveAccessToken();
+  if (!token) {
+    throw new Error('No authenticated session. Sign in to use account-level privacy features.');
+  }
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
     ...options,
     headers: {
-      apikey: config.anonKey,
-      Authorization: `Bearer ${config.accessToken}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...(options.headers ?? {}),
     },
@@ -46,19 +77,14 @@ async function supabaseFetch(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(typeof data === 'string' ? data : data?.error || data?.message || `Supabase request failed (${response.status})`);
+    throw new Error(
+      typeof data === 'string'
+        ? data
+        : data?.error || data?.message || `Supabase request failed (${response.status})`
+    );
   }
 
   return data;
-}
-
-export function isPrivacyBackendConfigured() {
-  return getSupabaseConfig().configured;
-}
-
-/** URL + anon key present (project reachable); does not imply an authenticated user session. */
-export function isSupabaseProjectConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
 export async function ensurePrivacySettings() {
@@ -69,11 +95,13 @@ export async function ensurePrivacySettings() {
 }
 
 export async function fetchProfile() {
-  const rows = await supabaseFetch('/rest/v1/profiles?select=id,account_status,age_group,deletion_requested_at,account_locked_at', {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
-  return Array.isArray(rows) ? rows[0] ?? { age_group: 'unknown', account_status: 'active' } : rows;
+  const rows = await supabaseFetch(
+    '/rest/v1/profiles?select=id,account_status,age_group,deletion_requested_at,account_locked_at',
+    { method: 'GET', headers: { Accept: 'application/json' } }
+  );
+  return Array.isArray(rows)
+    ? rows[0] ?? { age_group: 'unknown', account_status: 'active' }
+    : rows;
 }
 
 export async function updatePrivacySettings(patch) {
