@@ -69,21 +69,36 @@ function inferImageCategory(p) {
 
 /**
  * Normalize a raw product from the backend into a safe shape for ProductShelf.
- * Handles alternative field names, missing fields, and null items without crashing.
+ * Handles alternative field names, missing fields, null items, and prose strings
+ * (e.g. backend accidentally stringified a sub-field) without crashing.
  */
 function normalizeProduct(p, i) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
   return {
-    id: String(p.id ?? p._id ?? i),
-    name: p.name ?? p.title ?? 'Unknown Product',
-    retailer: p.retailer ?? p.brand ?? 'Retailer unavailable',
-    price: p.price ?? 'Price unavailable',
-    imageUrl: normalizeImageUrl(p.imageUrl, p.image_url, p.image),
+    id:           String(p.id ?? p._id ?? i),
+    name:         p.name ?? p.title ?? 'Unknown Product',
+    retailer:     p.retailer ?? p.brand ?? 'Retailer unavailable',
+    price:        p.price ?? 'Price unavailable',
+    imageUrl:     normalizeImageUrl(p.imageUrl, p.image_url, p.image),
     imageCategory: inferImageCategory(p),
-    productUrl: p.productUrl ?? p.product_url ?? p.url ?? p.purchaseUrl ?? null,
-    purchaseUrl: p.purchaseUrl ?? p.purchase_url ?? p.productUrl ?? p.product_url ?? p.url ?? null,
+    productUrl:   p.productUrl ?? p.product_url ?? p.url ?? p.purchaseUrl ?? null,
+    purchaseUrl:  p.purchaseUrl ?? p.purchase_url ?? p.productUrl ?? p.product_url ?? p.url ?? null,
     affiliateUrl: p.affiliateUrl ?? p.affiliate_url ?? null,
   };
+}
+
+/**
+ * De-duplicate products by (name, retailer) key so the shelf never shows the
+ * same item twice even if the backend returns overlapping entries.
+ */
+function deduplicateProducts(products) {
+  const seen = new Set();
+  return products.filter((p) => {
+    const key = `${String(p.name || '').toLowerCase()}|${String(p.retailer || '').toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**
@@ -158,7 +173,9 @@ export async function analyzeImage(base64) {
       type: 'fashion',
       result: data.result ?? '',
       metadata: data.metadata ?? { category: '', color: '', silhouette: '' },
-      products: Array.isArray(rawProducts) ? rawProducts.map(normalizeProduct).filter(Boolean) : [],
+      products: Array.isArray(rawProducts)
+        ? deduplicateProducts(rawProducts.map(normalizeProduct).filter(Boolean))
+        : [],
     };
   } catch (err) {
     clearTimeout(timeoutId);

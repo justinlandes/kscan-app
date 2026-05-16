@@ -43,6 +43,7 @@ async function analyze(fixture) {
     ? response.status === 200 && hasMetadata(data)
     : response.status === 200 && data?.type === 'non-fashion';
 
+  const resultPreview = String(data?.result || data?.message || '').slice(0, 300);
   return {
     fixture: fixture.id,
     ok,
@@ -53,6 +54,7 @@ async function analyze(fixture) {
     silhouette: data?.metadata?.silhouette || '',
     products: Array.isArray(data?.products) ? data.products.length : 0,
     message: data?.message || '',
+    resultPreview,
   };
 }
 

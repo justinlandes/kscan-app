@@ -390,6 +390,64 @@ const NORMALIZATION_MAP = {
   activewear:  ['athleisure', 'sporty'],
 };
 
+// ─── Response attribute normalization ────────────────────────────────────────
+// Maps non-standard AI-generated values to accepted taxonomy terms.
+// Applied in parseFashionObject so downstream keyword matching and placeholder
+// logic receive canonical values.
+const COLOR_ALIASES = {
+  'charcoal gray':  'Charcoal',
+  'charcoal grey':  'Charcoal',
+  'dark gray':      'Charcoal',
+  'dark grey':      'Charcoal',
+  'light gray':     'Light Gray',
+  'light grey':     'Light Gray',
+  'off-white':      'Off-White',
+  'off white':      'Off-White',
+  'midnight blue':  'Navy',
+  'navy blue':      'Navy',
+  'dark blue':      'Navy',
+  'earth tone':     'Earth Tones',
+  'earth tones':    'Earth Tones',
+  'earthy':         'Earth Tones',
+  'nude':           'Beige',
+  'forest green':   'Green',
+  'olive green':    'Olive',
+  'sage green':     'Sage',
+};
+
+const SILHOUETTE_ALIASES = {
+  'voluminous':    'Oversized',
+  'voluminous fit':'Oversized',
+  'loose':         'Relaxed',
+  'baggy':         'Oversized',
+  'form-fitting':  'Fitted',
+  'form fitting':  'Fitted',
+  'body-con':      'Fitted',
+  'bodycon':       'Fitted',
+  'body con':      'Fitted',
+  'skinny':        'Slim',
+  'skinny fit':    'Slim',
+  'slim fit':      'Slim',
+  'wide leg':      'Wide-leg',
+  'palazzo':       'Wide-leg',
+  'draped':        'Flowy',
+  'flowing':       'Flowy',
+  'structured':    'Fitted',
+  'tailored':      'Fitted',
+  // item-type words the AI incorrectly places in the silhouette field
+  'slip-on':       'Relaxed',
+  'low-top':       'Relaxed',
+  'high-top':      'Relaxed',
+  'mini':          'Fitted',
+  'maxi':          'Flowy',
+  'midi':          'Straight',
+};
+
+function normalizeAttributeValue(value, aliases) {
+  if (!value || typeof value !== 'string') return value;
+  return aliases[value.toLowerCase().trim()] || value;
+}
+
 // ─── Keyword preprocessing ────────────────────────────────────────────────────
 // Returns { originalKeywords, expandedSet, allKeywords }
 // expandedSet tracks which keywords came from normalization so scoring
@@ -621,15 +679,44 @@ function matchProducts(metadata, options = {}) {
 // JSON-first prompt — modern LLMs (Llama 4, GPT-4o, etc.) produce more reliable
 // structured output than the old text-field format. The legacy text format is kept
 // as a fallback inside parseAIResponse for backward compatibility with Gemini.
-const SYSTEM_PROMPT = `You are a high-fashion AI stylist with computer vision.
+//
+// Design notes:
+//   - "Start with { / end with }" forces the model to open JSON immediately.
+//   - Silhouette is constrained to fit descriptors only (not item-type words like
+//     "Slip-on" or "Mini") to prevent taxonomy drift that breaks product matching.
+//   - Category uses the exact values in CATEGORY_ALIASES so normalization is tight.
+//   - A concrete example anchors the expected output structure.
+const SYSTEM_PROMPT = `You are a high-fashion AI stylist with computer vision. Your ENTIRE response must be a single valid JSON object.
 
-Analyze the image and respond ONLY with a single valid JSON object — no markdown fences, no prose outside the JSON.
+CRITICAL: Start your response with { and end with }. No markdown fences, no prose, no explanation outside the JSON.
 
-If the image does NOT contain a fashion item (clothing, footwear, or accessories):
+If the image does NOT contain clothing, footwear, or accessories:
 {"type":"non-fashion","message":"<one sentence describing what the image actually shows>"}
 
 If the image DOES contain a fashion item:
-{"type":"fashion","result":"<2-4 sentence professional style breakdown with one pairing suggestion>","metadata":{"category":"<item category e.g. Footwear, Outerwear, Tops, Bottoms, Accessories>","itemType":"<specific item type e.g. slipper, mule, puffer slipper, jacket>","material":"<visible fabric/construction e.g. quilted synthetic nylon, leather, denim>","style":"<primary aesthetic e.g. Casual, Gorpcore, Activewear, Streetwear, Minimalist>","color":"<dominant color palette e.g. Red / Black, Cream, Earth Tones>","silhouette":"<fit or form descriptor e.g. Oversized, Fitted, Relaxed, Slip-on, Mule, Boxy>"}}`;
+{"type":"fashion","result":"<2-4 sentence professional style breakdown with one pairing suggestion>","metadata":{"category":"<EXACTLY ONE of: Footwear | Outerwear | Tops | Bottoms | Accessories>","itemType":"<specific item e.g. sneaker, hoodie, tote bag, blazer, jeans>","material":"<visible fabric/construction e.g. leather, denim, cotton, quilted nylon>","style":"<EXACTLY ONE of: Casual | Streetwear | Minimalist | Classic | Bohemian | Athleisure | Formal | Grunge>","color":"<dominant palette e.g. Black, Navy / White, Earth Tones>","silhouette":"<EXACTLY ONE fit descriptor: Oversized | Fitted | Relaxed | Boxy | Cropped | Wide-leg | Slim | Flowy | Straight | Layered>"}}
+
+Example for a white hoodie:
+{"type":"fashion","result":"A crisp white hoodie with minimal logo detailing and a relaxed cotton-blend construction. The clean silhouette makes it a versatile layering piece. Pair with slim black jeans and white sneakers for a polished casual look.","metadata":{"category":"Tops","itemType":"hoodie","material":"cotton-blend","style":"Casual","color":"White","silhouette":"Relaxed"}}`;
+
+// Ultra-strict schema prompt used for the retry call when the first response is
+// malformed or prose-only. Paired with temperature 0.1 (set in callOpenRouter).
+// No conversational context is added — schema constraint only.
+const REPAIR_SYSTEM_PROMPT = `Output ONLY a valid JSON object starting with {. No prose, no markdown.
+Fashion: {"type":"fashion","result":"<style description>","metadata":{"category":"<Footwear|Outerwear|Tops|Bottoms|Accessories>","itemType":"<item>","material":"<fabric>","style":"<Casual|Streetwear|Minimalist|Classic|Bohemian|Athleisure|Formal>","color":"<palette>","silhouette":"<Oversized|Fitted|Relaxed|Boxy|Cropped|Wide-leg|Slim|Flowy|Straight>"}}
+Non-fashion: {"type":"non-fashion","message":"<description>"}`;
+
+// Structured pipeline observability — gated behind DEBUG_AI_PIPELINE env flag
+// or the existing DEV_PROVIDER_LOGS flag. Silent in production unless opted in.
+// Set DEBUG_AI_PIPELINE=true in .env for per-request tracing.
+const DEBUG_AI_PIPELINE = process.env.DEBUG_AI_PIPELINE === 'true';
+
+function logPipelineEvent(event, details = {}) {
+  if (!DEBUG_AI_PIPELINE && !DEV_PROVIDER_LOGS) return;
+  const entry = { event, ...details };
+  if (entry.preview) entry.preview = String(entry.preview).slice(0, 200);
+  console.log('[K-SCAN PIPELINE]', JSON.stringify(entry));
+}
 
 function aiLog(level, message, details = {}) {
   if (!DEV_PROVIDER_LOGS) return;
@@ -686,6 +773,95 @@ function collectJsonCandidates(text) {
 function firstString(...values) {
   const found = values.find((value) => typeof value === 'string' && value.trim());
   return found ? found.trim() : '';
+}
+
+// ─── Prose metadata repair ─────────────────────────────────────────────────
+// When all JSON-extraction and legacy-format attempts fail, extract structured
+// metadata from the raw prose text before the prose-only fallback activates.
+// Used as Attempt 4b inside parseAIResponse.
+
+const PROSE_CATEGORY_PATTERNS = [
+  { re: /\b(sneaker|sneakers|shoe|shoes|boot|boots|footwear|loafer|sandal|mule|slipper|pump|heel|clog)\b/i, value: 'Footwear' },
+  { re: /\b(jacket|coat|blazer|outerwear|parka|trench|puffer|windbreaker|bomber|vest)\b/i, value: 'Outerwear' },
+  { re: /\b(shirt|hoodie|top|blouse|tee|t-shirt|sweater|cardigan|turtleneck|tank|polo|bralette|knitwear|sweatshirt)\b/i, value: 'Tops' },
+  { re: /\b(dress|gown|jumpsuit|romper|one-piece)\b/i, value: 'Bottoms' },
+  { re: /\b(jeans|pants|trousers|skirt|shorts|leggings|joggers|chinos)\b/i, value: 'Bottoms' },
+  { re: /\b(bag|tote|purse|backpack|clutch|satchel|crossbody|handbag|pouch)\b/i, value: 'Accessories' },
+  { re: /\b(belt|hat|cap|beanie|sunglasses|jewelry|necklace|bracelet|watch|scarf|gloves)\b/i, value: 'Accessories' },
+];
+
+const PROSE_SILHOUETTE_PATTERNS = [
+  { re: /\b(oversized|over-sized|baggy|loose|voluminous)\b/i,       value: 'Oversized' },
+  { re: /\b(fitted|slim|skinny|tight|body-con|bodycon|form-fitting)\b/i, value: 'Fitted' },
+  { re: /\b(relaxed|comfortable|easy-fit|regular fit|regular-fit)\b/i, value: 'Relaxed' },
+  { re: /\b(boxy|box-cut)\b/i,                                       value: 'Boxy' },
+  { re: /\b(cropped|crop top)\b/i,                                   value: 'Cropped' },
+  { re: /\b(wide-leg|wide leg|palazzo|flared)\b/i,                   value: 'Wide-leg' },
+  { re: /\b(flowy|flowing|draped|fluid)\b/i,                         value: 'Flowy' },
+  { re: /\b(layered|layering)\b/i,                                   value: 'Layered' },
+  { re: /\b(straight|straight-leg|straight-cut|classic fit)\b/i,     value: 'Straight' },
+  { re: /\b(tailored|structured|slim fit)\b/i,                       value: 'Fitted' },
+];
+
+const PROSE_COLOR_PATTERNS = [
+  { re: /\b(black)\b/i,                                   value: 'Black' },
+  { re: /\b(white|ivory|cream|off-white)\b/i,             value: 'White' },
+  { re: /\b(navy|dark blue|midnight blue)\b/i,             value: 'Navy' },
+  { re: /\b(blue|cobalt|cerulean)\b/i,                    value: 'Blue' },
+  { re: /\b(red|crimson|scarlet|burgundy)\b/i,             value: 'Red' },
+  { re: /\b(gray|grey|charcoal|slate)\b/i,                value: 'Gray' },
+  { re: /\b(brown|tan|camel|chocolate|cognac|mocha)\b/i,  value: 'Brown' },
+  { re: /\b(beige|sand|nude|taupe)\b/i,                   value: 'Beige' },
+  { re: /\b(green|olive|emerald|forest|sage|khaki)\b/i,   value: 'Green' },
+  { re: /\b(pink|blush|rose|mauve)\b/i,                   value: 'Pink' },
+  { re: /\b(purple|lavender|violet|plum)\b/i,             value: 'Purple' },
+  { re: /\b(yellow|mustard|gold|butter)\b/i,              value: 'Yellow' },
+  { re: /\b(orange|rust|terracotta)\b/i,                  value: 'Orange' },
+  { re: /\b(monochrome|monochromatic)\b/i,                value: 'Monochrome' },
+  { re: /\b(earth tone|earth tones|earthy)\b/i,           value: 'Earth Tones' },
+  { re: /\b(striped|plaid|floral|patterned)\b/i,          value: 'Multi-color' },
+];
+
+// When prose extraction finds a category but no silhouette signal, use this
+// category-specific default so metadata always has a non-empty silhouette.
+const CATEGORY_DEFAULT_SILHOUETTE = {
+  Footwear:    'Relaxed',
+  Outerwear:   'Relaxed',
+  Tops:        'Relaxed',
+  Bottoms:     'Relaxed',
+  Accessories: 'Structured',
+};
+
+function firstProseMatch(text, patterns) {
+  // Use the match whose keyword appears EARLIEST in the text rather than the
+  // first pattern in the array. This correctly ignores pairing-suggestion words
+  // ("Pair with a blazer") when the main subject appears before them.
+  let earliestValue = '';
+  let earliestIndex = Infinity;
+  for (const { re, value } of patterns) {
+    const m = re.exec(text);
+    if (m && m.index < earliestIndex) {
+      earliestIndex = m.index;
+      earliestValue = value;
+    }
+  }
+  return earliestValue;
+}
+
+/**
+ * Extract structured metadata from unstructured prose AI responses.
+ * Returns { category, color, silhouette } when at least category is found,
+ * otherwise returns null. Called as Attempt 4b in parseAIResponse.
+ */
+function extractMetadataFromProse(text) {
+  if (!text || typeof text !== 'string') return null;
+  const category = firstProseMatch(text, PROSE_CATEGORY_PATTERNS);
+  if (!category) return null;
+  const color      = firstProseMatch(text, PROSE_COLOR_PATTERNS) || 'Undetermined';
+  const silhouette = firstProseMatch(text, PROSE_SILHOUETTE_PATTERNS)
+    || CATEGORY_DEFAULT_SILHOUETTE[category]
+    || 'Relaxed';
+  return { category, color, silhouette };
 }
 
 function parseFashionObject(parsed) {
@@ -754,13 +930,35 @@ function parseFashionObject(parsed) {
 
   if (!hasFashionShape) return null;
 
+  // Normalize AI-generated values to canonical taxonomy terms.
+  const normalizedColor      = normalizeAttributeValue(color,      COLOR_ALIASES);
+  const normalizedSilhouette = normalizeAttributeValue(silhouette, SILHOUETTE_ALIASES);
+
   const generatedResult = [
     itemType || category,
-    color && `${color} color palette`,
-    material && `${material} construction`,
-    style && `${style} styling`,
-    silhouette && `${silhouette} silhouette`,
+    normalizedColor     && `${normalizedColor} color palette`,
+    material            && `${material} construction`,
+    style               && `${style} styling`,
+    normalizedSilhouette && `${normalizedSilhouette} silhouette`,
   ].filter(Boolean).join(', ');
+
+  // Confidence: clamp any AI-provided score to [0,1]; otherwise compute from
+  // field population so callers always receive a deterministic value.
+  const rawAiConf = parsed.confidence ?? parsed.confidence_score ?? null;
+  let confidence;
+  if (rawAiConf !== null) {
+    const n = Number(rawAiConf);
+    confidence = isFinite(n) ? Math.max(0, Math.min(1, n)) : null;
+  }
+  if (confidence == null) {
+    const filled = [category, itemType, normalizedColor, material, style, normalizedSilhouette].filter(Boolean).length;
+    confidence =
+      filled >= 5 ? 0.95 :
+      filled === 4 ? 0.85 :
+      filled === 3 ? 0.75 :
+      filled === 2 ? 0.60 :
+      filled === 1 ? 0.45 : 0.20;
+  }
 
   return {
     type: 'fashion',
@@ -770,8 +968,9 @@ function parseFashionObject(parsed) {
       itemType,
       material,
       style,
-      color,
-      silhouette,
+      color:      normalizedColor,
+      silhouette: normalizedSilhouette,
+      confidence,
     },
   };
 }
@@ -817,9 +1016,37 @@ function parseAIResponse(rawText, context = {}) {
     return { type: 'fashion', result: stripMetadataFromResult(text) || text, metadata };
   }
 
-  // Attempt 5: unstructured prose — use the whole response as the result text.
-  // This ensures a substantive model reply is never silently discarded.
+  // Attempt 4b: prose metadata repair.
+  // When all JSON extraction and legacy-format attempts fail, try to extract
+  // structured metadata from the prose text before the prose-only fallback fires.
+  // This catches cases where the AI ignores the JSON-only instruction.
   if (text.length > 30) {
+    const proseMeta = extractMetadataFromProse(text);
+    if (proseMeta) {
+      logPipelineEvent('PROSE_REPAIR_SUCCESS', {
+        provider:   context.provider,
+        category:   proseMeta.category,
+        color:      proseMeta.color,
+        silhouette: proseMeta.silhouette,
+        preview:    previewProviderText(text, 200),
+      });
+      return {
+        type:   'fashion',
+        result: stripMetadataFromResult(text) || text,
+        metadata: proseMeta,
+      };
+    }
+  }
+
+  // Attempt 5: prose-only fallback — emit full text as result with observability.
+  // PROSE_FALLBACK fires ONLY after all structured extraction and repair attempts fail.
+  if (text.length > 30) {
+    logPipelineEvent('PROSE_FALLBACK', {
+      provider:       context.provider,
+      reason:         'NO_STRUCTURED_FIELDS',
+      repairAttempts: context.repairAttempts || 0,
+      preview:        previewProviderText(text, 200),
+    });
     aiLog('warn', '[K-SCAN] No structured fields found in AI response; using full text as result', {
       provider: context.provider,
       responseLength: text.length,
@@ -885,7 +1112,21 @@ function checkNonFashion(text) {
   return match ? match[1].trim() : null;
 }
 
-async function callOpenRouter(mimeType, data) {
+/**
+ * Call OpenRouter and return { parsed, rawText } or null on error.
+ * options.temperature  – passed to the model (default 0.4; use 0.1 for repair).
+ * options.systemPrompt – overrides SYSTEM_PROMPT (use REPAIR_SYSTEM_PROMPT for retry).
+ * options.isRetry      – for logging only; does not affect the API call.
+ *
+ * Retry policy (enforced by caller): at most 1 additional call per request,
+ * only when first response produces empty metadata. No conversational context added.
+ */
+async function callOpenRouter(mimeType, data, options = {}) {
+  const {
+    temperature  = 0.4,
+    systemPrompt = SYSTEM_PROMPT,
+    isRetry      = false,
+  } = options;
   const controller = new AbortController();
   // 25 s — vision models need more time than text-only requests;
   // must still leave headroom below the client-side 25 s ANALYZE_TIMEOUT_MS.
@@ -898,9 +1139,10 @@ async function callOpenRouter(mimeType, data) {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model:       OPENROUTER_MODEL,
+        temperature,
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: systemPrompt },
           {
             role: 'user',
             content: [
@@ -949,7 +1191,7 @@ async function callOpenRouter(mimeType, data) {
       return null;
     }
 
-    const parsed = parseAIResponse(rawText, { provider: 'OpenRouter' });
+    const parsed = parseAIResponse(rawText, { provider: 'OpenRouter', isRetry });
     if (!parsed) {
       aiLog('warn', '[K-SCAN] parseAIResponse returned null for non-empty OpenRouter rawText', {
         provider: 'OpenRouter',
@@ -957,7 +1199,9 @@ async function callOpenRouter(mimeType, data) {
         preview: previewProviderText(rawText, 1000),
       });
     }
-    return parsed;
+    // Return both the parsed result and the raw text so the caller can decide
+    // whether a retry is warranted (e.g. empty metadata despite non-null parse).
+    return { parsed, rawText };
   } catch (err) {
     clearTimeout(timeout);
     aiLog('error', '[K-SCAN] OpenRouter provider exception', {
@@ -1039,7 +1283,33 @@ app.post('/api/analyze', async (req, res) => {
 
     if (USE_OPENROUTER) {
       console.log('[K-SCAN] Provider: OpenRouter  model:', OPENROUTER_MODEL);
-      const orResult = await callOpenRouter(mimeType, data);
+
+      // First attempt — normal temperature, standard system prompt.
+      const firstCall = await callOpenRouter(mimeType, data);
+      let orResult = firstCall?.parsed;
+
+      // Conditional retry — at most 1 additional call per request.
+      // Triggered when the first response produces empty metadata (prose fallback
+      // fired or parse returned null). Uses lower temperature + strict schema prompt.
+      const hasEmptyMeta = !orResult || (!orResult.metadata?.category && !orResult.metadata?.color);
+      if (hasEmptyMeta) {
+        logPipelineEvent('RETRY_TRIGGERED', {
+          provider: 'OpenRouter',
+          reason:   'EMPTY_METADATA_AFTER_REPAIR',
+          preview:  previewProviderText(firstCall?.rawText, 200),
+        });
+        console.log('[K-SCAN] OpenRouter retry: temperature=0.1 systemPrompt=REPAIR');
+        const retryCall = await callOpenRouter(mimeType, data, {
+          temperature:  0.1,
+          systemPrompt: REPAIR_SYSTEM_PROMPT,
+          isRetry:      true,
+        });
+        if (retryCall?.parsed &&
+            (retryCall.parsed.type === 'non-fashion' || retryCall.parsed.metadata?.category)) {
+          orResult = retryCall.parsed;
+        }
+      }
+
       if (orResult) {
         if (orResult.type === 'non-fashion') {
           console.log('[K-SCAN] Result: NON_FASHION — suppressing product matching');
@@ -1050,7 +1320,7 @@ app.post('/api/analyze', async (req, res) => {
         console.log('[K-SCAN] Final response status: 200 fashion');
         return res.status(200).json({ ...orResult, products: matchProducts(orResult.metadata) });
       }
-      // orResult is null — model returned empty content after all parse attempts
+      // All attempts produced no usable content
       console.warn('[K-SCAN] FAILED: OpenRouter returned no usable content for this image');
       if (ALLOW_DEV_FALLBACK) return res.status(200).json(DEV_FALLBACK);
       console.warn('[K-SCAN] Final response status: 503 FAILED AI_PROVIDER_UNAVAILABLE');
@@ -1180,6 +1450,10 @@ if (require.main === module) {
 
 module.exports = {
   parseAIResponse,
+  extractMetadataFromProse,
+  normalizeAttributeValue,
+  COLOR_ALIASES,
+  SILHOUETTE_ALIASES,
   matchProducts,
   CONFIDENCE_THRESHOLD,
   WEIGHTS,

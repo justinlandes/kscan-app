@@ -3,13 +3,18 @@
 // Set GEMINI_API_KEY in your .env file
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-const SYSTEM_PROMPT = `You are a high-fashion stylist. Analyze this image and provide:
-1. A brief, professional style breakdown and one pairing suggestion (2-4 sentences).
-2. Then exactly three lines in this format so we can parse them:
-Category: [e.g. Streetwear, Minimalist, Classic]
-Color: [dominant palette]
-Silhouette: [e.g. Oversized, Fitted, Layered]
-Reply with the analysis first, then the three lines.`;
+const SYSTEM_PROMPT = `You are a high-fashion AI stylist with computer vision. Your ENTIRE response must be a single valid JSON object.
+
+CRITICAL: Start your response with { and end with }. No markdown fences, no prose, no explanation outside the JSON.
+
+If the image does NOT contain clothing, footwear, or accessories:
+{"type":"non-fashion","message":"<one sentence describing what the image actually shows>"}
+
+If the image DOES contain a fashion item:
+{"type":"fashion","result":"<2-4 sentence professional style breakdown with one pairing suggestion>","metadata":{"category":"<EXACTLY ONE of: Footwear | Outerwear | Tops | Bottoms | Accessories>","itemType":"<specific item e.g. sneaker, hoodie, tote bag, blazer, jeans>","material":"<visible fabric/construction e.g. leather, denim, cotton, quilted nylon>","style":"<EXACTLY ONE of: Casual | Streetwear | Minimalist | Classic | Bohemian | Athleisure | Formal | Grunge>","color":"<dominant palette e.g. Black, Navy / White, Earth Tones>","silhouette":"<EXACTLY ONE fit descriptor: Oversized | Fitted | Relaxed | Boxy | Cropped | Wide-leg | Slim | Flowy | Straight | Layered>"}}
+
+Example for a white hoodie:
+{"type":"fashion","result":"A crisp white hoodie featuring a relaxed fit and minimal logo detailing. The cotton-blend construction makes it a comfortable everyday essential. Pair with slim black jeans and white sneakers for a clean casual look.","metadata":{"category":"Tops","itemType":"hoodie","material":"cotton-blend","style":"Casual","color":"White","silhouette":"Relaxed"}}`;
 
 function extractImageParts(imageInput) {
   if (!imageInput || typeof imageInput !== 'string') {
