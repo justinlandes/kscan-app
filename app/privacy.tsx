@@ -226,9 +226,9 @@ export default function PrivacyScreen() {
             {showSignInCta ? (
               <Pressable style={styles.signInNotice} onPress={() => router.push('/auth')}>
                 <View style={styles.signInNoticeText}>
-                  <Text style={styles.noticeTitle}>SIGN IN TO SYNC</Text>
+                  <Text style={styles.noticeTitle}>SIGN IN OR CREATE ACCOUNT</Text>
                   <Text style={styles.noticeBody}>
-                    Sign in to save privacy preferences across devices. Until then, this setting is preserved only on this device.
+                    Sign in or create an account to save privacy preferences across devices. Until then, this setting is preserved only on this device.
                   </Text>
                 </View>
                 <Text style={styles.signInArrow}>›</Text>

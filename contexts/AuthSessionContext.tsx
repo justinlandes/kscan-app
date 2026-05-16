@@ -9,6 +9,17 @@ import React, {
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 
+/**
+ * Returned by signUp so the caller can distinguish between an immediate
+ * authenticated session (Case A) and an email-confirmation-required state
+ * where no session exists yet (Case B).
+ */
+export interface SignUpResult {
+  /** Null when Supabase requires email confirmation before granting a session. */
+  session: Session | null;
+  confirmationRequired: boolean;
+}
+
 export interface AuthSessionContextValue {
   session: Session | null;
   user: User | null;
@@ -18,6 +29,7 @@ export interface AuthSessionContextValue {
   /** True during a background token refresh. Writes should be deferred. */
   isRefreshing: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
 }
 
@@ -53,6 +65,15 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     if (error) throw error;
   }, []);
 
+  const signUp = useCallback(async (email: string, password: string): Promise<SignUpResult> => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    return {
+      session: data.session ?? null,
+      confirmationRequired: !data.session,
+    };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -65,9 +86,10 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
       isAuthenticated: !loading && session !== null,
       isRefreshing,
       signIn,
+      signUp,
       signOut,
     }),
-    [session, loading, isRefreshing, signIn, signOut],
+    [session, loading, isRefreshing, signIn, signUp, signOut],
   );
 
   return (

@@ -204,3 +204,95 @@ test('normalize: merged OFF preferences with adult profile remain OFF', () => {
   assert.equal(normalized.opt_out_of_sale, false);
   assert.equal(normalized.limit_sensitive_processing, false);
 });
+
+// ─── Auth input validation ────────────────────────────────────────────────────
+
+const { validateAuthInput, mapAuthError } = require('../services/authValidation');
+
+test('validateAuthInput: empty email fails', () => {
+  const r = validateAuthInput('sign-in', '', 'password123', '');
+  assert.equal(r.valid, false);
+  assert.ok(r.error, 'should have an error message');
+});
+
+test('validateAuthInput: email missing @ fails', () => {
+  const r = validateAuthInput('sign-in', 'notanemail', 'password123', '');
+  assert.equal(r.valid, false);
+  assert.match(r.error, /valid email/i);
+});
+
+test('validateAuthInput: email ending with @ fails', () => {
+  const r = validateAuthInput('sign-in', 'user@', 'password123', '');
+  assert.equal(r.valid, false);
+  assert.match(r.error, /valid email/i);
+});
+
+test('validateAuthInput: empty password fails', () => {
+  const r = validateAuthInput('sign-in', 'user@example.com', '', '');
+  assert.equal(r.valid, false);
+  assert.match(r.error, /password/i);
+});
+
+test('validateAuthInput: valid sign-in inputs pass', () => {
+  const r = validateAuthInput('sign-in', 'user@example.com', 'password123', '');
+  assert.equal(r.valid, true);
+  assert.equal(r.error, null);
+});
+
+test('validateAuthInput: create-account missing confirmPassword fails', () => {
+  const r = validateAuthInput('create-account', 'user@example.com', 'password123', '');
+  assert.equal(r.valid, false);
+  assert.match(r.error, /confirm/i);
+});
+
+test('validateAuthInput: create-account mismatched passwords fail', () => {
+  const r = validateAuthInput('create-account', 'user@example.com', 'password123', 'different');
+  assert.equal(r.valid, false);
+  assert.match(r.error, /do not match/i);
+});
+
+test('validateAuthInput: create-account all valid inputs pass', () => {
+  const r = validateAuthInput('create-account', 'user@example.com', 'password123', 'password123');
+  assert.equal(r.valid, true);
+  assert.equal(r.error, null);
+});
+
+test('validateAuthInput: email with leading/trailing spaces is accepted (trimmed internally)', () => {
+  const r = validateAuthInput('sign-in', '  user@example.com  ', 'password123', '');
+  assert.equal(r.valid, true);
+});
+
+// ─── Auth error mapping ───────────────────────────────────────────────────────
+
+test('mapAuthError: invalid login credentials → safe copy', () => {
+  const msg = mapAuthError('Invalid login credentials', 'sign-in');
+  assert.match(msg, /incorrect/i);
+});
+
+test('mapAuthError: email not confirmed → confirmation hint', () => {
+  const msg = mapAuthError('Email not confirmed', 'sign-in');
+  assert.match(msg, /confirmed/i);
+  assert.match(msg, /inbox/i);
+});
+
+test('mapAuthError: user already registered in create-account mode → suggest sign-in', () => {
+  const msg = mapAuthError('User already registered', 'create-account');
+  assert.match(msg, /already exist/i);
+  assert.match(msg, /sign(ing)? in/i);
+});
+
+test('mapAuthError: user already registered in sign-in mode → safe copy (no disclosure)', () => {
+  const msg = mapAuthError('User already registered', 'sign-in');
+  assert.match(msg, /incorrect/i);
+});
+
+test('mapAuthError: network error maps to network copy', () => {
+  const msg = mapAuthError('Network request failed', 'sign-in');
+  assert.match(msg, /network/i);
+  assert.match(msg, /connection/i);
+});
+
+test('mapAuthError: unknown error passes through', () => {
+  const msg = mapAuthError('Some unexpected error from server', 'sign-in');
+  assert.equal(msg, 'Some unexpected error from server');
+});
