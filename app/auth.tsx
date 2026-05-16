@@ -155,6 +155,7 @@ export default function AuthScreen() {
           {/* Mode switcher tabs */}
           <View style={styles.tabRow}>
             <Pressable
+              testID="auth-mode-signin"
               style={styles.tab}
               onPress={() => switchMode('sign-in')}
               disabled={busy}
@@ -165,6 +166,7 @@ export default function AuthScreen() {
               {mode === 'sign-in' ? <View style={styles.tabIndicator} /> : <View style={styles.tabIndicatorInvisible} />}
             </Pressable>
             <Pressable
+              testID="auth-mode-create-account"
               style={styles.tab}
               onPress={() => switchMode('create-account')}
               disabled={busy}
@@ -191,6 +193,7 @@ export default function AuthScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>EMAIL</Text>
             <TextInput
+              testID="auth-email-input"
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
@@ -207,6 +210,7 @@ export default function AuthScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>PASSWORD</Text>
             <TextInput
+              testID="auth-password-input"
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
@@ -225,6 +229,7 @@ export default function AuthScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
               <TextInput
+                testID="auth-confirm-password-input"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="••••••••"
@@ -241,6 +246,7 @@ export default function AuthScreen() {
           ) : null}
 
           <Pressable
+            testID="auth-submit-button"
             style={[styles.primaryButton, busy && styles.primaryButtonBusy]}
             onPress={handleSubmit}
             disabled={busy}

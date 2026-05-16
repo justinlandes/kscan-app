@@ -224,7 +224,7 @@ export default function PrivacyScreen() {
             {loadFailureBanner}
 
             {showSignInCta ? (
-              <Pressable style={styles.signInNotice} onPress={() => router.push('/auth')}>
+              <Pressable testID="privacy-auth-cta" style={styles.signInNotice} onPress={() => router.push('/auth')}>
                 <View style={styles.signInNoticeText}>
                   <Text style={styles.noticeTitle}>SIGN IN OR CREATE ACCOUNT</Text>
                   <Text style={styles.noticeBody}>
