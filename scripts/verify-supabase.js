@@ -15,6 +15,8 @@ require('dotenv').config();
 const {
   classifyRestV1RootResponse,
   classifyEnsurePrivacySettingsUnauthenticated,
+  classifySchemaObjectProbe,
+  classifyEdgeOptionsProbe,
 } = require('./verify-supabase-helpers');
 
 const REQUIRED_VARS = [
@@ -104,6 +106,29 @@ async function checkRpcEnsurePrivacySettingsNoUserJwt() {
   });
   const text = await res.text();
   return { status: res.status, body: text.slice(0, 200) };
+}
+
+async function checkRestObject(path) {
+  const res = await fetch(`${url}${path}`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      Accept: 'application/json',
+    },
+  });
+  const text = await res.text();
+  return { status: res.status, body: text.slice(0, 200) };
+}
+
+async function checkEdgeOptions(functionName) {
+  const res = await fetch(`${url}/functions/v1/${functionName}`, {
+    method: 'OPTIONS',
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+  });
+  return { status: res.status };
 }
 
 function pushGateFromLevel(level, msg, { elevateInfoToPass = false } = {}) {
@@ -206,20 +231,88 @@ function pushGateFromLevel(level, msg, { elevateInfoToPass = false } = {}) {
   }
 
   console.log('\n── Schema parity ───────────────────────────────────────────────────────\n');
-  console.log(
-    '  ℹ Live table/column checks require Dashboard → SQL or Table Editor, or a service-role introspection job.',
-  );
-  console.log('     Expected objects (from repo migrations):');
-  console.log('       • public.profiles — extended by 202605130000_profiles_privacy_status.sql');
-  console.log('       • public.privacy_settings — 202605130001_privacy_settings.sql');
-  console.log('       • public.deletion_requests — 202605130003_deletion_requests.sql');
-  console.log(
-    '       • public.privacy_export_requests, public.privacy_correction_requests — 202605130004_*',
-  );
-  gate.push({
-    code: 'INFO',
-    msg: 'Schema parity must be confirmed in Supabase Dashboard if not all migrations are applied',
-  });
+  console.log('  Live PostgREST probes use the anon JWT. RLS may hide rows, but missing tables/columns return 404.');
+
+  const schemaProbes = [
+    {
+      label: 'public.profiles privacy columns',
+      path: '/rest/v1/profiles?select=id,account_status,age_group,deletion_requested_at,account_locked_at&limit=1',
+      required: true,
+      migration: '202605130000_profiles_privacy_status.sql',
+    },
+    {
+      label: 'public.privacy_settings',
+      path: '/rest/v1/privacy_settings?select=user_id,opt_out_of_sale,limit_sensitive_processing&limit=1',
+      required: true,
+      migration: '202605130001_privacy_settings.sql',
+    },
+    {
+      label: 'public.deletion_requests',
+      path: '/rest/v1/deletion_requests?select=id&limit=1',
+      required: false,
+      migration: '202605130003_deletion_requests.sql',
+    },
+    {
+      label: 'public.privacy_export_requests',
+      path: '/rest/v1/privacy_export_requests?select=id&limit=1',
+      required: false,
+      migration: '202605130004_privacy_requests_extensible.sql',
+    },
+    {
+      label: 'public.privacy_correction_requests',
+      path: '/rest/v1/privacy_correction_requests?select=id&limit=1',
+      required: false,
+      migration: '202605130004_privacy_requests_extensible.sql',
+    },
+  ];
+
+  for (const probe of schemaProbes) {
+    try {
+      const res = await checkRestObject(probe.path);
+      const classification = classifySchemaObjectProbe(res.status, {
+        label: probe.label,
+        required: probe.required,
+      });
+      console.log(`  ${probe.label} (${probe.migration}) → HTTP ${res.status}`);
+      console.log(`      → ${classification.detail}`);
+      pushGateFromLevel(classification.level, classification.detail);
+      if (res.status === 404 && res.body) {
+        console.log(`      body preview: ${res.body.replace(/\s+/g, ' ')}`);
+      }
+    } catch (err) {
+      const msg = `${probe.label} probe failed: ${err.message}`;
+      if (probe.required) {
+        gate.push({ code: 'BLOCKER', msg });
+        console.error(`  ✗ BLOCKER: ${msg}`);
+      } else {
+        gate.push({ code: 'WARN', msg });
+        console.warn(`  ⚠ ${msg}`);
+      }
+    }
+  }
+
+  console.log('\n── Edge Function deployment probes ────────────────────────────────────\n');
+  console.log('  OPTIONS probes avoid creating privacy requests. 404 means the function is not deployed at the expected path.');
+  for (const functionName of [
+    'handle-user-deletion',
+    'privacy-data-export',
+    'privacy-correction-request',
+  ]) {
+    try {
+      const res = await checkEdgeOptions(functionName);
+      const classification = classifyEdgeOptionsProbe(res.status, {
+        label: functionName,
+        required: false,
+      });
+      console.log(`  ${functionName} → HTTP ${res.status}`);
+      console.log(`      → ${classification.detail}`);
+      pushGateFromLevel(classification.level, classification.detail);
+    } catch (err) {
+      const msg = `${functionName} Edge Function probe failed: ${err.message}`;
+      gate.push({ code: 'WARN', msg });
+      console.warn(`  ⚠ ${msg}`);
+    }
+  }
 
   console.log('\n── Release gate summary ────────────────────────────────────────────────\n');
   printSummary(gate);

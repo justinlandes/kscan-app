@@ -67,7 +67,53 @@ function classifyEnsurePrivacySettingsUnauthenticated(status) {
   return { level: 'WARN', detail: `HTTP ${status} — inspect response body in dashboard logs.` };
 }
 
+function classifySchemaObjectProbe(status, { label, required }) {
+  if (status >= 200 && status < 300) {
+    return { level: 'PASS', detail: `${label} is visible through PostgREST.` };
+  }
+  if (status === 404) {
+    return {
+      level: required ? 'BLOCKER' : 'WARN',
+      detail: `${label} is missing from the live PostgREST schema cache.`,
+    };
+  }
+  if (status === 401 || status === 403) {
+    return {
+      level: required ? 'WARN' : 'INFO',
+      detail: `${label} exists or is protected, but live visibility is restricted (HTTP ${status}). Confirm in Dashboard SQL/Table Editor.`,
+    };
+  }
+  return {
+    level: required ? 'WARN' : 'INFO',
+    detail: `${label} returned HTTP ${status}. Confirm in Dashboard SQL/Table Editor.`,
+  };
+}
+
+function classifyEdgeOptionsProbe(status, { label, required }) {
+  if (status >= 200 && status < 300) {
+    return { level: 'PASS', detail: `${label} Edge Function responded to OPTIONS.` };
+  }
+  if (status === 404) {
+    return {
+      level: required ? 'BLOCKER' : 'WARN',
+      detail: `${label} Edge Function is not deployed or not reachable at the expected path.`,
+    };
+  }
+  if (status === 401 || status === 403) {
+    return {
+      level: 'INFO',
+      detail: `${label} Edge Function path exists but requires auth for this probe (HTTP ${status}).`,
+    };
+  }
+  return {
+    level: required ? 'WARN' : 'INFO',
+    detail: `${label} Edge Function returned HTTP ${status}. Confirm deployment logs before treating it as live.`,
+  };
+}
+
 module.exports = {
   classifyRestV1RootResponse,
   classifyEnsurePrivacySettingsUnauthenticated,
+  classifySchemaObjectProbe,
+  classifyEdgeOptionsProbe,
 };
