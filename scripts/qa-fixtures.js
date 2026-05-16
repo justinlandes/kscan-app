@@ -7,6 +7,10 @@ const API_URL =
   process.env.KSCAN_API_URL    ||
   'https://kscan-app-1.onrender.com/api/analyze';
 
+// Token-gated diagnostic headers: set VALIDATION_SECRET_KEY in your shell to
+// receive X-KScan-* version headers from the production backend.
+const VALIDATION_SECRET = process.env.VALIDATION_SECRET_KEY || '';
+
 const FIXTURE_DIR = path.join(__dirname, '..', 'assets', 'qa_fixtures');
 const LOG_DIR     = path.join(__dirname, '..', 'qa');
 const LOG_FILE    = path.join(LOG_DIR, 'fixtures-output.log');
@@ -38,9 +42,11 @@ function hasMetadata(data) {
 }
 
 async function analyze(fixture) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (VALIDATION_SECRET) headers['X-KScan-Validation-Auth'] = VALIDATION_SECRET;
   const response = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ image: toDataUri(fixture.file) }),
   });
   const data = await response.json();

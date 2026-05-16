@@ -19,14 +19,16 @@ const HEALTH_URL = (
   'https://kscan-app-1.onrender.com'
 ) + '/api/health';
 
-const TOTAL_REQUESTS = parseInt(process.env.CONVERGENCE_N || '5', 10);
-const CONCURRENCY    = parseInt(process.env.CONVERGENCE_C || '3', 10); // send N concurrent
+const TOTAL_REQUESTS     = parseInt(process.env.CONVERGENCE_N || '5', 10);
+const CONCURRENCY        = parseInt(process.env.CONVERGENCE_C || '3', 10);
+// Token-gated validation: in production, diagnostic headers require this secret.
+const VALIDATION_SECRET  = process.env.VALIDATION_SECRET_KEY || '';
 
 async function probe(index) {
-  const start = Date.now();
-  const response = await fetch(HEALTH_URL, {
-    headers: { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' },
-  });
+  const start   = Date.now();
+  const headers = { 'Cache-Control': 'no-cache, no-store', 'Pragma': 'no-cache' };
+  if (VALIDATION_SECRET) headers['X-KScan-Validation-Auth'] = VALIDATION_SECRET;
+  const response = await fetch(HEALTH_URL, { headers });
   const latencyMs = Date.now() - start;
   const body = await response.json().catch(() => ({}));
 
@@ -34,9 +36,10 @@ async function probe(index) {
     index,
     status:              response.status,
     latencyMs,
-    parserVersion:       response.headers.get('x-kscan-parser-version')        || 'not-present',
+    parserVersion:        response.headers.get('x-kscan-parser-version')        || 'not-present',
     normalizationVersion: response.headers.get('x-kscan-normalization-version') || 'not-present',
     promptVersion:        response.headers.get('x-kscan-prompt-version')        || 'not-present',
+    deployedCommit:       response.headers.get('x-kscan-deployed-commit')       || 'not-present',
     ok:                  body?.ok === true,
     server:              response.headers.get('server') || '',
     cfRay:               response.headers.get('cf-ray') || '',
@@ -59,30 +62,32 @@ async function main() {
   }
 
   console.table(results.map(r => ({
-    '#':              r.index,
-    status:           r.status,
-    latencyMs:        r.latencyMs,
-    parserVersion:    r.parserVersion,
-    normVersion:      r.normalizationVersion,
-    promptVersion:    r.promptVersion,
+    '#':             r.index,
+    status:          r.status,
+    latencyMs:       r.latencyMs,
+    parserVersion:   r.parserVersion,
+    normVersion:     r.normalizationVersion,
+    deployedCommit:  r.deployedCommit,
   })));
 
   // ── Version convergence check ─────────────────────────────────────────────
   const parserVersions       = [...new Set(results.map(r => r.parserVersion))];
   const normalizationVersions = [...new Set(results.map(r => r.normalizationVersion))];
   const promptVersions        = [...new Set(results.map(r => r.promptVersion))];
+  const deployedCommits       = [...new Set(results.map(r => r.deployedCommit))];
 
   const headersPresent = results.some(r => r.parserVersion !== 'not-present');
   if (!headersPresent) {
-    console.warn('\n[K-SCAN CONVERGENCE] ⚠  X-KScan-* headers not present.');
-    console.warn('  This means the deployed backend is running a pre-v3.0 build (before this sprint).');
-    console.warn('  DEPLOYMENT IS STALE — redeployment required before live fixture validation.\n');
-    console.warn('  Render redeployment steps:');
-    console.warn('  1. Merge feature/expo-router-migration → master');
-    console.warn('  2. In Render dashboard → kscan-backend → Manual Deploy (or push to master triggers auto-deploy)');
-    console.warn('  3. Wait for build to complete (~2-3 min)');
-    console.warn('  4. Re-run this script to confirm convergence');
-    console.warn('  5. Re-run npm run qa:fixtures to confirm schema normalization\n');
+    if (!VALIDATION_SECRET) {
+      console.warn('\n[K-SCAN CONVERGENCE] ⚠  No VALIDATION_SECRET_KEY set in environment.');
+      console.warn('  In production, X-KScan-* headers require a valid auth token.');
+      console.warn('  Set VALIDATION_SECRET_KEY=<secret> (must match server VALIDATION_SECRET_KEY)');
+      console.warn('  and re-run: VALIDATION_SECRET_KEY=<secret> npm run qa:convergence\n');
+    } else {
+      console.warn('\n[K-SCAN CONVERGENCE] ⚠  X-KScan-* headers not present even with auth token.');
+      console.warn('  Backend may be running a pre-v3.0 build or VALIDATION_SECRET_KEY mismatch.');
+      console.warn('  DEPLOYMENT IS STALE — redeployment required before live fixture validation.');
+    }
     process.exit(1);
   }
 
@@ -112,6 +117,7 @@ async function main() {
 
   console.log(`\n[K-SCAN CONVERGENCE] ✓ All ${TOTAL_REQUESTS} instances running version:`);
   console.log(`  parser=${parserVersions[0]}  normalization=${normalizationVersions[0]}  prompt=${promptVersions[0]}`);
+  console.log(`  deployed_commit=${deployedCommits[0]}`);
   console.log(`[K-SCAN CONVERGENCE] Health latency: avg=${avg}ms  p95=${p95}ms`);
   console.log('[K-SCAN CONVERGENCE] Deployment convergence: PASS — safe to run live fixture validation.\n');
 }

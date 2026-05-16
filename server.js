@@ -20,6 +20,30 @@ const ALLOW_DEV_FALLBACK = process.env.ALLOW_DEV_FALLBACK === 'true';
 const DEBUG = process.env.KSCAN_DEBUG === 'true';
 const DEV_PROVIDER_LOGS = process.env.NODE_ENV !== 'production';
 
+// Render injects RENDER_GIT_COMMIT automatically. Falls back to GIT_COMMIT
+// (manual CI env) or a placeholder so the header is always a non-empty string.
+const DEPLOYED_COMMIT = (
+  process.env.RENDER_GIT_COMMIT ||
+  process.env.GIT_COMMIT        ||
+  '(commit-unavailable)'
+).slice(0, 12); // 12-char short hash is sufficient for convergence checks
+
+// Secure validation handshake: in production, diagnostic response headers are
+// emitted ONLY when the incoming request carries a valid X-KScan-Validation-Auth
+// header that matches the VALIDATION_SECRET_KEY env var exactly.
+// In non-production, diagnostics are emitted unconditionally.
+// The secret is NEVER reflected back into responses or logged.
+function isValidationRequest(req) {
+  const secret = process.env.VALIDATION_SECRET_KEY;
+  if (!secret) return false;
+  const provided = req.headers['x-kscan-validation-auth'];
+  return typeof provided === 'string' && provided === secret;
+}
+
+function shouldEmitDiagnostics(req) {
+  return process.env.NODE_ENV !== 'production' || isValidationRequest(req);
+}
+
 console.log('[K-SCAN] Startup config:');
 console.log('[K-SCAN]   has GEMINI_API_KEY    :', !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 0);
 console.log('[K-SCAN]   has OPENROUTER_API_KEY:', !!process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY.length > 0);
@@ -1314,6 +1338,17 @@ async function callOpenRouter(mimeType, data, options = {}) {
 }
 
 app.get('/api/health', (req, res) => {
+  // Diagnostic headers on health endpoint — required by qa:convergence.
+  // In production, emitted only when X-KScan-Validation-Auth is correct.
+  if (shouldEmitDiagnostics(req)) {
+    res.set({
+      'X-KScan-Parser-Version':        PARSER_VERSION,
+      'X-KScan-Normalization-Version': NORMALIZATION_VERSION,
+      'X-KScan-Prompt-Version':        PROMPT_VERSION,
+      'X-KScan-Deployed-Commit':       DEPLOYED_COMMIT,
+    });
+  }
+
   if (process.env.NODE_ENV === 'production') {
     return res.json({ ok: true });
   }
@@ -1380,13 +1415,16 @@ app.post('/api/analyze', async (req, res) => {
     // ── Always log the image receipt so failures are diagnosable ───────────────
     console.log(`[K-SCAN] image received — mimeType: ${mimeType || '(none)'}  dataLen: ${data?.length ?? 0}`);
 
-    // ── Debug response headers — non-production only ──────────────────────────
-    // Values never appear in the JSON body; safe to set early (before branching).
-    if (process.env.NODE_ENV !== 'production') {
+    // ── Diagnostic response headers ───────────────────────────────────────────
+    // Never in response body. In production: only when VALIDATION_SECRET_KEY auth
+    // header matches. In non-production: always emitted. See shouldEmitDiagnostics().
+    const emitDiag = shouldEmitDiagnostics(req);
+    if (emitDiag) {
       res.set({
         'X-KScan-Parser-Version':        PARSER_VERSION,
         'X-KScan-Normalization-Version': NORMALIZATION_VERSION,
         'X-KScan-Prompt-Version':        PROMPT_VERSION,
+        'X-KScan-Deployed-Commit':       DEPLOYED_COMMIT,
       });
     }
 
@@ -1445,7 +1483,7 @@ app.post('/api/analyze', async (req, res) => {
         }
       }
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (emitDiag) {
         res.set('X-KScan-Retry-Triggered', retried ? '1' : '0');
       }
 
@@ -1600,6 +1638,7 @@ module.exports = {
   PARSER_VERSION,
   NORMALIZATION_VERSION,
   PROMPT_VERSION,
+  DEPLOYED_COMMIT,
   matchProducts,
   CONFIDENCE_THRESHOLD,
   WEIGHTS,
