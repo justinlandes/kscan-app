@@ -296,3 +296,18 @@ test('mapAuthError: unknown error passes through', () => {
   const msg = mapAuthError('Some unexpected error from server', 'sign-in');
   assert.equal(msg, 'Some unexpected error from server');
 });
+
+test('mapAuthError: "rate limit" → rate-limit copy', () => {
+  const msg = mapAuthError('Auth rate limit reached', 'sign-in');
+  assert.equal(msg, 'Too many attempts. Please wait a few minutes and try again.');
+});
+
+test('mapAuthError: "too many requests" → rate-limit copy', () => {
+  const msg = mapAuthError('Too many requests', 'create-account');
+  assert.equal(msg, 'Too many attempts. Please wait a few minutes and try again.');
+});
+
+test('mapAuthError: "429" in message → rate-limit copy', () => {
+  const msg = mapAuthError('Request failed with status 429', 'sign-in');
+  assert.equal(msg, 'Too many attempts. Please wait a few minutes and try again.');
+});

@@ -70,6 +70,13 @@ function mapAuthError(msg, mode) {
     return 'Password must be at least 6 characters.';
   }
   if (
+    lower.includes('rate limit') ||
+    lower.includes('too many requests') ||
+    lower.includes('429')
+  ) {
+    return 'Too many attempts. Please wait a few minutes and try again.';
+  }
+  if (
     lower.includes('network') ||
     lower.includes('fetch') ||
     lower.includes('failed to connect')
