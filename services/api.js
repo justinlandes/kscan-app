@@ -69,9 +69,10 @@ function inferImageCategory(p) {
 
 /**
  * Normalize a raw product from the backend into a safe shape for ProductShelf.
- * Handles alternative field names and missing fields without crashing.
+ * Handles alternative field names, missing fields, and null items without crashing.
  */
 function normalizeProduct(p, i) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
   return {
     id: String(p.id ?? p._id ?? i),
     name: p.name ?? p.title ?? 'Unknown Product',
@@ -157,7 +158,7 @@ export async function analyzeImage(base64) {
       type: 'fashion',
       result: data.result ?? '',
       metadata: data.metadata ?? { category: '', color: '', silhouette: '' },
-      products: Array.isArray(rawProducts) ? rawProducts.map(normalizeProduct) : [],
+      products: Array.isArray(rawProducts) ? rawProducts.map(normalizeProduct).filter(Boolean) : [],
     };
   } catch (err) {
     clearTimeout(timeoutId);

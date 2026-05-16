@@ -3,12 +3,13 @@ import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { CAPTURE_BUTTON, COLORS, MOTION } from '../constants/theme';
 
 interface ScanButtonProps {
-  onPress:  () => void;
+  onPress:   () => void;
   disabled?: boolean;
   pulse?:    boolean;
+  testID?:   string;
 }
 
-export function ScanButton({ onPress, disabled, pulse = true }: ScanButtonProps) {
+export function ScanButton({ onPress, disabled, pulse = true, testID = 'scan-button' }: ScanButtonProps) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export function ScanButton({ onPress, disabled, pulse = true }: ScanButtonProps)
 
   return (
     <TouchableOpacity
-      testID="shutter_button"
+      testID={testID}
       accessibilityLabel="Capture photo"
       style={styles.wrap}
       onPress={onPress}

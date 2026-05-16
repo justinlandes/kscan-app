@@ -453,13 +453,12 @@ export default function App() {
                 color={COLORS.accent}
               />
             ) : (
-              <View testID="scan-button">
-                <ScanButton
-                  onPress={() => capturePhoto(cameraRef)}
-                  disabled={status !== 'idle' || !isCameraReady}
-                  pulse={status === 'idle'}
-                />
-              </View>
+              <ScanButton
+                testID="scan-button"
+                onPress={() => capturePhoto(cameraRef)}
+                disabled={status !== 'idle' || !isCameraReady}
+                pulse={status === 'idle'}
+              />
             )}
           </View>
 

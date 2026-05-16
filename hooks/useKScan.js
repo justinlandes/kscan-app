@@ -45,6 +45,11 @@ export function useKScan() {
   const [error, setError] = useState(null);
   const [nonFashionMessage, setNonFashionMessage] = useState(null);
   const isMounted = useRef(true);
+  // Synchronous locks — read before state updates propagate, so rapid taps that
+  // arrive in the same event loop tick before React re-renders cannot trigger
+  // duplicate captures or duplicate API calls.
+  const captureInProgressRef = useRef(false);
+  const analysisInProgressRef = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -53,12 +58,13 @@ export function useKScan() {
 
   const capturePhoto = useCallback(
     async (cameraRef) => {
-      if (status !== 'idle') {
+      if (captureInProgressRef.current || status !== 'idle') {
         warnInvalidTransition(status, 'capturing');
         return;
       }
       if (!cameraRef?.current) return;
 
+      captureInProgressRef.current = true;
       setStatus('capturing');
       softImpact();
 
@@ -75,6 +81,8 @@ export function useKScan() {
         }
         setError('We could not take the photo. Please try again.');
         setStatus('error');
+      } finally {
+        captureInProgressRef.current = false;
       }
     },
     [status]
@@ -84,12 +92,13 @@ export function useKScan() {
     async () => {
       if (__DEV__) console.log('[DEBUG] ANALYZE_TAP status=' + status);
 
-      if (status !== 'preview') {
+      if (analysisInProgressRef.current || status !== 'preview') {
         warnInvalidTransition(status, 'processing');
         return;
       }
       if (!photo?.uri) return;
 
+      analysisInProgressRef.current = true;
       setStatus('processing');
       setError(null);
       setAnalysis(null);
@@ -153,6 +162,8 @@ export function useKScan() {
           );
           setStatus('error');
         }
+      } finally {
+        analysisInProgressRef.current = false;
       }
     },
     [status, photo]
