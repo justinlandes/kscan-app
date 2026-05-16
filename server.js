@@ -434,6 +434,15 @@ const SILHOUETTE_ALIASES = {
   'flowing':       'Flowy',
   'structured':    'Fitted',
   'tailored':      'Fitted',
+  // compound/qualified fit descriptors (e.g. "Relaxed fit" observed in live responses)
+  'relaxed fit':   'Relaxed',
+  'regular fit':   'Relaxed',
+  'standard fit':  'Relaxed',
+  'classic fit':   'Relaxed',
+  'comfort fit':   'Relaxed',
+  'boyfriend fit': 'Relaxed',
+  'oversized fit': 'Oversized',
+  'fitted bodice': 'Fitted',
   // item-type words the AI incorrectly places in the silhouette field
   'slip-on':       'Relaxed',
   'low-top':       'Relaxed',
@@ -441,11 +450,79 @@ const SILHOUETTE_ALIASES = {
   'mini':          'Fitted',
   'maxi':          'Flowy',
   'midi':          'Straight',
+  'tote':          'Relaxed',   // "Tote or shoulder bag" fallback
+  'shoulder bag':  'Relaxed',
 };
 
 function normalizeAttributeValue(value, aliases) {
   if (!value || typeof value !== 'string') return value;
   return aliases[value.toLowerCase().trim()] || value;
+}
+
+// ─── Canonical schema enforcement ────────────────────────────────────────────
+// CATEGORY_CANONICAL and SILHOUETTE_CANONICAL define the ONLY values the
+// frontend schema accepts. resolveCompoundValue handles compound strings,
+// case-insensitive matches, and unknown values with safe fallbacks.
+// These sets are the authority — they must stay aligned with app/api/analyze+api.js.
+const CATEGORY_CANONICAL  = new Set(['Tops', 'Bottoms', 'Outerwear', 'Footwear', 'Accessories', 'Dresses']);
+const SILHOUETTE_CANONICAL = new Set(['Oversized', 'Fitted', 'Relaxed', 'Boxy', 'Cropped', 'Wide-leg', 'Slim', 'Flowy', 'Straight', 'Layered']);
+
+/**
+ * Resolve a raw attribute value to a canonical enum value.
+ * Strategy hierarchy (per task spec):
+ *   1. Direct canonical match (case-insensitive)
+ *   2. Alias lookup via SILHOUETTE_ALIASES / COLOR_ALIASES (done before this call)
+ *   3. Split compound string on , / | " and " — take first valid token
+ *   4. Emit SCHEMA_REJECTED and return safe fallback
+ * NEVER hard-fails; always returns a frontend-safe value.
+ */
+function resolveCompoundValue(rawValue, canonicalSet, fallback, fieldName, provider) {
+  if (!rawValue || typeof rawValue !== 'string') return fallback;
+
+  // 1. Direct case-insensitive match
+  for (const v of canonicalSet) {
+    if (v.toLowerCase() === rawValue.toLowerCase()) return v;
+  }
+
+  // 2. Split on compound delimiters and try each token in order
+  const tokens = rawValue.split(/[,\/|]+|\s+and\s+/i).map(t => t.trim()).filter(Boolean);
+  for (const token of tokens) {
+    const tokenLower = token.toLowerCase();
+    for (const v of canonicalSet) {
+      const vLower = v.toLowerCase();
+      // Exact token match (case-insensitive)
+      if (tokenLower === vLower) {
+        logPipelineEvent('SCHEMA_NORMALIZED', {
+          field: fieldName, from: rawValue, to: v, method: 'compound_split', provider,
+        });
+        return v;
+      }
+      // Prefix match at word boundary: "Fitted bodice" → "Fitted"
+      // Requires token to start with the canonical value followed by a space.
+      if (tokenLower.startsWith(vLower + ' ')) {
+        logPipelineEvent('SCHEMA_NORMALIZED', {
+          field: fieldName, from: rawValue, to: v, method: 'compound_prefix', provider,
+        });
+        return v;
+      }
+    }
+  }
+
+  // 3. No valid token — emit SCHEMA_REJECTED and return safe fallback
+  logPipelineEvent('SCHEMA_REJECTED', { field: fieldName, value: rawValue, fallback, provider });
+  return fallback;
+}
+
+/**
+ * Apply strict canonical schema to fashion metadata after alias normalization.
+ * Handles compound values ("Tops, Bottoms"), item-type leakage ("Slip-on"),
+ * and any value not in the canonical enum. Always returns a frontend-safe object.
+ */
+function enforceCanonicalSchema(metadata, provider) {
+  if (!metadata || typeof metadata !== 'object') return metadata;
+  const category   = resolveCompoundValue(metadata.category,   CATEGORY_CANONICAL,   'Accessories', 'category',   provider);
+  const silhouette = resolveCompoundValue(metadata.silhouette, SILHOUETTE_CANONICAL, 'Relaxed',     'silhouette', provider);
+  return { ...metadata, category, silhouette };
 }
 
 // ─── Keyword preprocessing ────────────────────────────────────────────────────
@@ -703,8 +780,19 @@ Example for a white hoodie:
 // malformed or prose-only. Paired with temperature 0.1 (set in callOpenRouter).
 // No conversational context is added — schema constraint only.
 const REPAIR_SYSTEM_PROMPT = `Output ONLY a valid JSON object starting with {. No prose, no markdown.
-Fashion: {"type":"fashion","result":"<style description>","metadata":{"category":"<Footwear|Outerwear|Tops|Bottoms|Accessories>","itemType":"<item>","material":"<fabric>","style":"<Casual|Streetwear|Minimalist|Classic|Bohemian|Athleisure|Formal>","color":"<palette>","silhouette":"<Oversized|Fitted|Relaxed|Boxy|Cropped|Wide-leg|Slim|Flowy|Straight>"}}
+Fashion: {"type":"fashion","result":"<style description>","metadata":{"category":"<Footwear|Outerwear|Tops|Bottoms|Accessories|Dresses>","itemType":"<item>","material":"<fabric>","style":"<Casual|Streetwear|Minimalist|Classic|Bohemian|Athleisure|Formal>","color":"<palette>","silhouette":"<Oversized|Fitted|Relaxed|Boxy|Cropped|Wide-leg|Slim|Flowy|Straight|Layered>"}}
 Non-fashion: {"type":"non-fashion","message":"<description>"}`;
+
+// ─── Pipeline version constants ───────────────────────────────────────────────
+// Exposed in X-KScan-Debug response headers (non-production only).
+// Bump each when the corresponding logic changes so deployment convergence
+// checks can confirm all instances are running the same version.
+// Bump PARSER_VERSION: parseAIResponse / parseFashionObject logic changes.
+// Bump NORMALIZATION_VERSION: SILHOUETTE_ALIASES / COLOR_ALIASES / enforceCanonicalSchema changes.
+// Bump PROMPT_VERSION: SYSTEM_PROMPT / REPAIR_SYSTEM_PROMPT changes.
+const PARSER_VERSION        = '3.0';
+const NORMALIZATION_VERSION = '2.0';
+const PROMPT_VERSION        = '2.0';
 
 // Structured pipeline observability — gated behind DEBUG_AI_PIPELINE env flag
 // or the existing DEV_PROVIDER_LOGS flag. Silent in production unless opted in.
@@ -824,12 +912,14 @@ const PROSE_COLOR_PATTERNS = [
 
 // When prose extraction finds a category but no silhouette signal, use this
 // category-specific default so metadata always has a non-empty silhouette.
+// All values MUST be members of SILHOUETTE_CANONICAL.
 const CATEGORY_DEFAULT_SILHOUETTE = {
   Footwear:    'Relaxed',
   Outerwear:   'Relaxed',
   Tops:        'Relaxed',
   Bottoms:     'Relaxed',
-  Accessories: 'Structured',
+  Dresses:     'Flowy',
+  Accessories: 'Relaxed',  // was 'Structured' — not in SILHOUETTE_CANONICAL
 };
 
 function firstProseMatch(text, patterns) {
@@ -930,16 +1020,24 @@ function parseFashionObject(parsed) {
 
   if (!hasFashionShape) return null;
 
-  // Normalize AI-generated values to canonical taxonomy terms.
-  const normalizedColor      = normalizeAttributeValue(color,      COLOR_ALIASES);
-  const normalizedSilhouette = normalizeAttributeValue(silhouette, SILHOUETTE_ALIASES);
+  // Step 1 — alias normalisation (fast lookup, handles exact known variants).
+  const normalizedColor = normalizeAttributeValue(color, COLOR_ALIASES);
+  // Apply silhouette alias BEFORE canonical enforcement so compound tokens like
+  // "Relaxed fit" are resolved to "Relaxed" before the set-membership check.
+  const aliasedSilhouette = normalizeAttributeValue(silhouette, SILHOUETTE_ALIASES);
+
+  // Step 2 — canonical schema enforcement (compound resolution, enum validation).
+  // resolveCompoundValue handles "Fitted bodice, Full skirt" → "Fitted",
+  // "Tops, Bottoms" → "Tops", unknown values → safe fallback.
+  const canonicalCategory   = resolveCompoundValue(category,        CATEGORY_CANONICAL,   'Accessories', 'category',   null);
+  const canonicalSilhouette = resolveCompoundValue(aliasedSilhouette, SILHOUETTE_CANONICAL, 'Relaxed',   'silhouette', null);
 
   const generatedResult = [
-    itemType || category,
-    normalizedColor     && `${normalizedColor} color palette`,
-    material            && `${material} construction`,
-    style               && `${style} styling`,
-    normalizedSilhouette && `${normalizedSilhouette} silhouette`,
+    itemType || canonicalCategory,
+    normalizedColor    && `${normalizedColor} color palette`,
+    material           && `${material} construction`,
+    style              && `${style} styling`,
+    canonicalSilhouette && `${canonicalSilhouette} silhouette`,
   ].filter(Boolean).join(', ');
 
   // Confidence: clamp any AI-provided score to [0,1]; otherwise compute from
@@ -951,7 +1049,7 @@ function parseFashionObject(parsed) {
     confidence = isFinite(n) ? Math.max(0, Math.min(1, n)) : null;
   }
   if (confidence == null) {
-    const filled = [category, itemType, normalizedColor, material, style, normalizedSilhouette].filter(Boolean).length;
+    const filled = [canonicalCategory, itemType, normalizedColor, material, style, canonicalSilhouette].filter(Boolean).length;
     confidence =
       filled >= 5 ? 0.95 :
       filled === 4 ? 0.85 :
@@ -964,12 +1062,12 @@ function parseFashionObject(parsed) {
     type: 'fashion',
     result: firstString(parsed.result, parsed.analysis, parsed.description, parsed.summary) || generatedResult,
     metadata: {
-      category,
+      category:  canonicalCategory,
       itemType,
       material,
       style,
-      color:      normalizedColor,
-      silhouette: normalizedSilhouette,
+      color:     normalizedColor,
+      silhouette: canonicalSilhouette,
       confidence,
     },
   };
@@ -1126,11 +1224,12 @@ async function callOpenRouter(mimeType, data, options = {}) {
     temperature  = 0.4,
     systemPrompt = SYSTEM_PROMPT,
     isRetry      = false,
+    // Budget-based timeout: primary gets 11 s; retry gets whatever remains
+    // (capped at 3 s). Both combined stay within the 14.5 s server budget.
+    timeoutMs    = 11000,
   } = options;
   const controller = new AbortController();
-  // 25 s — vision models need more time than text-only requests;
-  // must still leave headroom below the client-side 25 s ANALYZE_TIMEOUT_MS.
-  const timeout = setTimeout(() => controller.abort(), 22000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -1281,33 +1380,73 @@ app.post('/api/analyze', async (req, res) => {
     // ── Always log the image receipt so failures are diagnosable ───────────────
     console.log(`[K-SCAN] image received — mimeType: ${mimeType || '(none)'}  dataLen: ${data?.length ?? 0}`);
 
+    // ── Debug response headers — non-production only ──────────────────────────
+    // Values never appear in the JSON body; safe to set early (before branching).
+    if (process.env.NODE_ENV !== 'production') {
+      res.set({
+        'X-KScan-Parser-Version':        PARSER_VERSION,
+        'X-KScan-Normalization-Version': NORMALIZATION_VERSION,
+        'X-KScan-Prompt-Version':        PROMPT_VERSION,
+      });
+    }
+
+    // ── Server-side latency tracking ──────────────────────────────────────────
+    // Measures request_entry → response_send to exclude client network variability.
+    const reqStart  = Date.now();
+    let   retried   = false;
+    res.on('finish', () => {
+      const latencyMs = Date.now() - reqStart;
+      console.log(
+        `[K-SCAN METRICS] latency=${latencyMs}ms status=${res.statusCode}` +
+        ` retry=${retried ? 1 : 0} provider=${USE_OPENROUTER ? 'OpenRouter' : 'Gemini'}`
+      );
+      if (retried) logPipelineEvent('RETRY_METRIC', { latencyMs, status: res.statusCode });
+      if (latencyMs > 15000) console.warn('[K-SCAN METRICS] WARNING: p95 exceeded 15 s ceiling');
+    });
+
+    // ── Budget constants ──────────────────────────────────────────────────────
+    // Primary gets 11 s; retry gets what remains up to a 3 s cap.
+    // Combined max: 14 s + overhead, safely within the 15 s server ceiling.
+    const SERVER_BUDGET_MS = 14500;
+    const PRIMARY_TIMEOUT_MS = 11000;
+
     if (USE_OPENROUTER) {
       console.log('[K-SCAN] Provider: OpenRouter  model:', OPENROUTER_MODEL);
 
       // First attempt — normal temperature, standard system prompt.
-      const firstCall = await callOpenRouter(mimeType, data);
+      const firstCall = await callOpenRouter(mimeType, data, { timeoutMs: PRIMARY_TIMEOUT_MS });
       let orResult = firstCall?.parsed;
 
       // Conditional retry — at most 1 additional call per request.
       // Triggered when the first response produces empty metadata (prose fallback
       // fired or parse returned null). Uses lower temperature + strict schema prompt.
+      // Retry only runs if the remaining time budget allows >= 2 s.
       const hasEmptyMeta = !orResult || (!orResult.metadata?.category && !orResult.metadata?.color);
-      if (hasEmptyMeta) {
+      const elapsed      = Date.now() - reqStart;
+      const retryBudget  = SERVER_BUDGET_MS - elapsed - 200; // 200 ms overhead reserve
+      if (hasEmptyMeta && retryBudget >= 2000) {
+        retried = true;
         logPipelineEvent('RETRY_TRIGGERED', {
-          provider: 'OpenRouter',
-          reason:   'EMPTY_METADATA_AFTER_REPAIR',
-          preview:  previewProviderText(firstCall?.rawText, 200),
+          provider:     'OpenRouter',
+          reason:       'EMPTY_METADATA_AFTER_REPAIR',
+          retryBudget:  retryBudget,
+          preview:      previewProviderText(firstCall?.rawText, 200),
         });
-        console.log('[K-SCAN] OpenRouter retry: temperature=0.1 systemPrompt=REPAIR');
+        console.log(`[K-SCAN] OpenRouter retry: temperature=0.1 budget=${retryBudget}ms`);
         const retryCall = await callOpenRouter(mimeType, data, {
           temperature:  0.1,
           systemPrompt: REPAIR_SYSTEM_PROMPT,
           isRetry:      true,
+          timeoutMs:    Math.min(retryBudget, 3000),
         });
         if (retryCall?.parsed &&
             (retryCall.parsed.type === 'non-fashion' || retryCall.parsed.metadata?.category)) {
           orResult = retryCall.parsed;
         }
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        res.set('X-KScan-Retry-Triggered', retried ? '1' : '0');
       }
 
       if (orResult) {
@@ -1452,8 +1591,15 @@ module.exports = {
   parseAIResponse,
   extractMetadataFromProse,
   normalizeAttributeValue,
+  enforceCanonicalSchema,
+  resolveCompoundValue,
+  CATEGORY_CANONICAL,
+  SILHOUETTE_CANONICAL,
   COLOR_ALIASES,
   SILHOUETTE_ALIASES,
+  PARSER_VERSION,
+  NORMALIZATION_VERSION,
+  PROMPT_VERSION,
   matchProducts,
   CONFIDENCE_THRESHOLD,
   WEIGHTS,

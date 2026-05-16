@@ -15,7 +15,8 @@
     "android": "expo run:android",
     "android:device": "expo run:android --device",
     "ios": "expo run:ios",
-    "qa:fixtures": "node scripts/qa-fixtures.js"
+    "qa:fixtures": "node scripts/qa-fixtures.js",
+    "qa:convergence": "node scripts/qa-convergence.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

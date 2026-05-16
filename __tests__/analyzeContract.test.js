@@ -5,8 +5,14 @@ const {
   parseAIResponse,
   extractMetadataFromProse,
   normalizeAttributeValue,
+  enforceCanonicalSchema,
+  resolveCompoundValue,
+  CATEGORY_CANONICAL,
+  SILHOUETTE_CANONICAL,
   COLOR_ALIASES,
   SILHOUETTE_ALIASES,
+  PARSER_VERSION,
+  NORMALIZATION_VERSION,
 } = require('../server.js');
 
 test('parseAIResponse: type fashion with empty metadata normalizes to non-fashion', () => {
@@ -176,8 +182,12 @@ test('normalizeAttributeValue: color "earth tones" → "Earth Tones"', () => {
 });
 
 test('normalizeAttributeValue: unknown value passes through unchanged', () => {
+  // 'Cobalt Blue' is not in COLOR_ALIASES — should pass through
   assert.equal(normalizeAttributeValue('Cobalt Blue', COLOR_ALIASES), 'Cobalt Blue');
-  assert.equal(normalizeAttributeValue('Boyfriend fit', SILHOUETTE_ALIASES), 'Boyfriend fit');
+  // 'Angular' is not in SILHOUETTE_ALIASES — should pass through
+  assert.equal(normalizeAttributeValue('Angular', SILHOUETTE_ALIASES), 'Angular');
+  // 'Boyfriend fit' IS now in SILHOUETTE_ALIASES → maps to 'Relaxed'
+  assert.equal(normalizeAttributeValue('Boyfriend fit', SILHOUETTE_ALIASES), 'Relaxed');
 });
 
 test('normalizeAttributeValue: null/undefined/empty returns original value', () => {
@@ -334,4 +344,135 @@ test('parseAIResponse: fashion type with no attribute evidence and no narrative 
   const raw = JSON.stringify({ type: 'fashion', metadata: {}, result: '' });
   const out = parseAIResponse(raw, { provider: 'test' });
   assert.equal(out.type, 'non-fashion', 'empty fashion object must become non-fashion');
+});
+
+// ─── Canonical schema enforcement (resolveCompoundValue / enforceCanonicalSchema) ──
+
+test('resolveCompoundValue: canonical value passes through unchanged', () => {
+  assert.equal(resolveCompoundValue('Fitted',    SILHOUETTE_CANONICAL, 'Relaxed', 'silhouette', null), 'Fitted');
+  assert.equal(resolveCompoundValue('Outerwear', CATEGORY_CANONICAL,   'Accessories', 'category', null), 'Outerwear');
+  assert.equal(resolveCompoundValue('Dresses',   CATEGORY_CANONICAL,   'Accessories', 'category', null), 'Dresses');
+});
+
+test('resolveCompoundValue: case-insensitive match normalises capitalisation', () => {
+  assert.equal(resolveCompoundValue('fitted',    SILHOUETTE_CANONICAL, 'Relaxed', 'silhouette', null), 'Fitted');
+  assert.equal(resolveCompoundValue('OUTERWEAR', CATEGORY_CANONICAL,   'Accessories', 'category', null), 'Outerwear');
+});
+
+test('resolveCompoundValue: compound silhouette "Fitted bodice, Full skirt" → "Fitted"', () => {
+  const result = resolveCompoundValue('Fitted bodice, Full skirt', SILHOUETTE_CANONICAL, 'Relaxed', 'silhouette', null);
+  assert.equal(result, 'Fitted');
+});
+
+test('resolveCompoundValue: compound category "Tops, Bottoms" → "Tops" (first valid token)', () => {
+  const result = resolveCompoundValue('Tops, Bottoms', CATEGORY_CANONICAL, 'Accessories', 'category', null);
+  assert.equal(result, 'Tops');
+});
+
+test('resolveCompoundValue: unknown silhouette "Tote or shoulder bag" → safe fallback "Relaxed"', () => {
+  const result = resolveCompoundValue('Tote or shoulder bag', SILHOUETTE_CANONICAL, 'Relaxed', 'silhouette', null);
+  assert.equal(result, 'Relaxed');
+});
+
+test('resolveCompoundValue: empty/null returns fallback', () => {
+  assert.equal(resolveCompoundValue('',    SILHOUETTE_CANONICAL, 'Relaxed', 'silhouette', null), 'Relaxed');
+  assert.equal(resolveCompoundValue(null,  CATEGORY_CANONICAL,   'Accessories', 'category', null), 'Accessories');
+});
+
+test('enforceCanonicalSchema: normalises compound silhouette in full metadata object', () => {
+  const meta = { category: 'Outerwear', color: 'Black', silhouette: 'Fitted bodice, Full skirt' };
+  const out  = enforceCanonicalSchema(meta, 'test');
+  assert.equal(out.category,   'Outerwear');
+  assert.equal(out.silhouette, 'Fitted');
+  assert.equal(out.color,      'Black',   'non-enforced fields must pass through');
+});
+
+test('enforceCanonicalSchema: normalises compound category "Tops, Bottoms"', () => {
+  const meta = { category: 'Tops, Bottoms', color: 'White', silhouette: 'Relaxed' };
+  const out  = enforceCanonicalSchema(meta, 'test');
+  assert.equal(out.category,   'Tops');
+  assert.equal(out.silhouette, 'Relaxed');
+});
+
+test('enforceCanonicalSchema: "Slip-on" in silhouette field normalises via SILHOUETTE_ALIASES then canonical', () => {
+  // SILHOUETTE_ALIASES maps "Slip-on" → "Relaxed" (done in parseFashionObject BEFORE enforceCanonicalSchema).
+  // Here we test enforceCanonicalSchema alone: "Slip-on" is not in canonical → fallback "Relaxed".
+  const meta = { category: 'Footwear', color: 'Red', silhouette: 'Slip-on' };
+  const out  = enforceCanonicalSchema(meta, 'test');
+  assert.equal(out.silhouette, 'Relaxed');
+});
+
+test('enforceCanonicalSchema: "Relaxed fit" normalises to "Relaxed" via alias + canonical', () => {
+  // Simulates the path where alias normalisation runs first in parseFashionObject
+  // converting "Relaxed fit" → "Relaxed", then canonical validation passes it.
+  const meta = { category: 'Tops', color: 'White', silhouette: 'Relaxed fit' };
+  const out  = enforceCanonicalSchema(meta, 'test');
+  // resolveCompoundValue sees "Relaxed fit" case-insensitively — "Relaxed" is a
+  // canonical value but "Relaxed fit" is not.  The compound split gives ["Relaxed", "fit"],
+  // and "Relaxed" matches canonically.
+  assert.equal(out.silhouette, 'Relaxed');
+});
+
+test('enforceCanonicalSchema: null metadata returns null safely', () => {
+  assert.equal(enforceCanonicalSchema(null, 'test'), null);
+});
+
+test('parseFashionObject: "Slip-on" silhouette ends up "Relaxed" in full round-trip', () => {
+  const raw = JSON.stringify({
+    type: 'fashion',
+    result: 'Casual red sneaker.',
+    metadata: { category: 'Footwear', color: 'Red / White', silhouette: 'Slip-on', style: 'Casual' },
+  });
+  const out = parseAIResponse(raw, { provider: 'test' });
+  assert.equal(out.type, 'fashion');
+  assert.equal(out.metadata.silhouette, 'Relaxed', 'alias + canonical must resolve Slip-on → Relaxed');
+});
+
+test('parseFashionObject: "Relaxed fit" silhouette ends up "Relaxed"', () => {
+  const raw = JSON.stringify({
+    type: 'fashion',
+    result: 'A white hoodie with a relaxed fit.',
+    metadata: { category: 'Tops', color: 'White', silhouette: 'Relaxed fit', style: 'Casual' },
+  });
+  const out = parseAIResponse(raw, { provider: 'test' });
+  assert.equal(out.metadata.silhouette, 'Relaxed');
+});
+
+test('parseFashionObject: compound silhouette "Fitted bodice, Full skirt" → "Fitted"', () => {
+  const raw = JSON.stringify({
+    type: 'fashion',
+    result: 'An elegant wedding dress.',
+    metadata: { category: 'Dresses', color: 'White', silhouette: 'Fitted bodice, Full skirt', style: 'Formal' },
+  });
+  const out = parseAIResponse(raw, { provider: 'test' });
+  assert.equal(out.metadata.silhouette, 'Fitted');
+  assert.equal(out.metadata.category,   'Dresses');
+});
+
+test('parseFashionObject: "Dresses" category is accepted as canonical', () => {
+  const raw = JSON.stringify({
+    type: 'fashion',
+    result: 'A summer dress.',
+    metadata: { category: 'Dresses', color: 'Floral', silhouette: 'Flowy', style: 'Bohemian' },
+  });
+  const out = parseAIResponse(raw, { provider: 'test' });
+  assert.equal(out.metadata.category, 'Dresses');
+});
+
+test('parseFashionObject: unknown silhouette "Tote or shoulder bag" → fallback "Relaxed"', () => {
+  const raw = JSON.stringify({
+    type: 'fashion',
+    result: 'A striped tote bag.',
+    metadata: { category: 'Accessories', color: 'Blue / White', silhouette: 'Tote or shoulder bag', style: 'Casual' },
+  });
+  const out = parseAIResponse(raw, { provider: 'test' });
+  assert.equal(out.metadata.silhouette, 'Relaxed');
+  assert.equal(out.metadata.category,   'Accessories');
+});
+
+// ─── Version constants ────────────────────────────────────────────────────────
+
+test('version constants are non-empty strings', () => {
+  assert.ok(typeof PARSER_VERSION       === 'string' && PARSER_VERSION.length       > 0, 'PARSER_VERSION must be set');
+  assert.ok(typeof NORMALIZATION_VERSION === 'string' && NORMALIZATION_VERSION.length > 0, 'NORMALIZATION_VERSION must be set');
 });
