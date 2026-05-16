@@ -71,6 +71,15 @@ function classifySchemaObjectProbe(status, { label, required }) {
   if (status >= 200 && status < 300) {
     return { level: 'PASS', detail: `${label} is visible through PostgREST.` };
   }
+  if (status === 400) {
+    // PostgREST returns 400 (not 404) when a select= query references columns that
+    // do not exist in the live table. For required probes this is a schema-parity
+    // BLOCKER — check the body preview for the exact missing column name.
+    return {
+      level: required ? 'BLOCKER' : 'WARN',
+      detail: `${label} returned HTTP 400 — PostgREST rejected the column selection. One or more required columns are missing from the live schema. Apply the indicated migration and check the body preview for the exact error.`,
+    };
+  }
   if (status === 404) {
     return {
       level: required ? 'BLOCKER' : 'WARN',

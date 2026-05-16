@@ -66,3 +66,35 @@ test('optional edge function: 404 is WARN', () => {
   const r = classifyEdgeOptionsProbe(404, { label: 'privacy-data-export', required: false });
   assert.equal(r.level, 'WARN');
 });
+
+// HTTP 400 from PostgREST means the select= column list references a column that
+// does not exist in the live table. This is a schema-parity failure, not a generic error.
+test('required schema object: 400 is BLOCKER (missing column in live schema)', () => {
+  const r = classifySchemaObjectProbe(400, {
+    label: 'public.privacy_settings account-sync columns',
+    required: true,
+  });
+  assert.equal(r.level, 'BLOCKER');
+  assert.match(r.detail, /400/);
+});
+
+test('optional schema object: 400 is WARN', () => {
+  const r = classifySchemaObjectProbe(400, {
+    label: 'public.privacy_export_requests',
+    required: false,
+  });
+  assert.equal(r.level, 'WARN');
+});
+
+test('required schema object: 401 is WARN (exists but access restricted)', () => {
+  const r = classifySchemaObjectProbe(401, { label: 'public.profiles', required: true });
+  assert.equal(r.level, 'WARN');
+});
+
+test('optional schema object: 200 is PASS', () => {
+  const r = classifySchemaObjectProbe(200, {
+    label: 'public.deletion_requests',
+    required: false,
+  });
+  assert.equal(r.level, 'PASS');
+});

@@ -241,10 +241,10 @@ function pushGateFromLevel(level, msg, { elevateInfoToPass = false } = {}) {
       migration: '202605130000_profiles_privacy_status.sql',
     },
     {
-      label: 'public.privacy_settings',
-      path: '/rest/v1/privacy_settings?select=user_id,opt_out_of_sale,limit_sensitive_processing&limit=1',
+      label: 'public.privacy_settings account-sync columns',
+      path: '/rest/v1/privacy_settings?select=user_id,opt_out_of_sale,limit_sensitive_processing,gdpr_consent_given,gdpr_consent_timestamp,gdpr_consent_version,consent_version,last_request_source,last_processed_at,updated_at&limit=1',
       required: true,
-      migration: '202605130001_privacy_settings.sql',
+      migration: '202605130001_privacy_settings.sql / 202605130002_privacy_settings_schema_parity.sql',
     },
     {
       label: 'public.deletion_requests',
@@ -276,7 +276,7 @@ function pushGateFromLevel(level, msg, { elevateInfoToPass = false } = {}) {
       console.log(`  ${probe.label} (${probe.migration}) → HTTP ${res.status}`);
       console.log(`      → ${classification.detail}`);
       pushGateFromLevel(classification.level, classification.detail);
-      if (res.status === 404 && res.body) {
+      if ((res.status === 400 || res.status === 404) && res.body) {
         console.log(`      body preview: ${res.body.replace(/\s+/g, ' ')}`);
       }
     } catch (err) {
