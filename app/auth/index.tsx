@@ -13,9 +13,9 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 
-import { useAuthSession } from '../contexts/AuthSessionContext';
-import { COLORS, LAYOUT, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
-import { validateAuthInput, mapAuthError } from '../services/authValidation';
+import { useAuthSession } from '../../contexts/AuthSessionContext';
+import { COLORS, LAYOUT, RADIUS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { validateAuthInput, mapAuthError } from '../../services/authValidation';
 
 type AuthMode = 'sign-in' | 'create-account';
 type AuthStep = 'idle' | 'submitting' | 'confirm-email';
@@ -115,7 +115,7 @@ export default function AuthScreen() {
             <Text style={styles.cardBody}>
               We sent a confirmation link to{' '}
               <Text style={styles.emailHighlight}>{email.trim()}</Text>. Open the link to verify
-              your account, then sign in below.
+              your account and K Scan will sign you in automatically.
             </Text>
             <Pressable style={styles.primaryButton} onPress={handleBackToSignIn}>
               <Text style={styles.primaryButtonText}>SIGN IN</Text>
@@ -259,6 +259,19 @@ export default function AuthScreen() {
               </Text>
             )}
           </Pressable>
+
+          {mode === 'sign-in' ? (
+            <Pressable
+              testID="auth-forgot-password-button"
+              onPress={() => router.push('/auth/reset')}
+              disabled={busy}
+              style={styles.forgotPasswordButton}
+            >
+              <Text style={[styles.secondaryLinkAction, busy && styles.disabled]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <Pressable
@@ -440,6 +453,10 @@ const styles = StyleSheet.create({
   secondaryLinkAction: {
     color: '#00FFFF',
     fontWeight: '600',
+  },
+  forgotPasswordButton: {
+    alignSelf: 'center',
+    paddingVertical: SPACING.xs,
   },
   footNote: {
     ...TYPOGRAPHY.body,

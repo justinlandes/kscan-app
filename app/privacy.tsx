@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -10,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 
@@ -18,11 +20,13 @@ import { canToggleSaleSharing } from '../services/privacyPolicy';
 import {
   requestCorrection,
   requestDataExport,
-  requestDeletion,
 } from '../services/supabasePrivacy';
 import { usePrivacyPreferences } from '../contexts/PrivacyPreferencesContext';
 import { useAuthSession } from '../contexts/AuthSessionContext';
 import { COLORS, LAYOUT, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { submitAccountDeletionRequest } from '../services/accountDeletion';
+import { supabase } from '../services/supabaseClient';
+import { LOCAL_PRIVACY_STORAGE_KEY } from '../services/privacyLocalStore';
 
 const PRIVACY_COPY = {
   saleRemote:
@@ -57,7 +61,7 @@ const SYNC_STATUS_COLORS: Record<string, string> = {
 
 export default function PrivacyScreen() {
   const router = useRouter();
-  const { isAuthenticated, user, signOut, isRefreshing } = useAuthSession();
+  const { isAuthenticated, session, user, signOut, isRefreshing } = useAuthSession();
   const {
     mode,
     syncStatus,
@@ -73,6 +77,9 @@ export default function PrivacyScreen() {
 
   const [message, setMessage] = useState<string | null>(null);
   const [correctionText, setCorrectionText] = useState('');
+  const [deletionSubmitting, setDeletionSubmitting] = useState(false);
+  const [deletionPending, setDeletionPending] = useState(false);
+  const [deletionConfirmVisible, setDeletionConfirmVisible] = useState(false);
 
   const saleSharingLocked = !canToggleSaleSharing(normalized.age_group);
 
@@ -133,29 +140,39 @@ export default function PrivacyScreen() {
   };
 
   const handleDeletion = () => {
-    Alert.alert(
-      'Request account deletion?',
-      'Your account will be marked pending deletion while K Scan AI processes required retention, security, and legal checks.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Request',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await requestDeletion();
-              setMessage(
-                result.status === 'already_requested'
-                  ? 'Deletion was already requested.'
-                  : 'Deletion request submitted.',
-              );
-            } catch (error) {
-              setMessage(error instanceof Error ? error.message : 'Unable to request deletion.');
-            }
-          },
-        },
-      ],
-    );
+    if (deletionPending) {
+      setMessage('Deletion request already pending. You have been signed out.');
+      return;
+    }
+    setDeletionConfirmVisible(true);
+  };
+
+  const confirmDeletion = async () => {
+    setDeletionConfirmVisible(false);
+    setDeletionSubmitting(true);
+    try {
+      const result = await submitAccountDeletionRequest(supabase, session);
+      setDeletionPending(true);
+      setMessage(
+        result.status === 'already_requested'
+          ? 'Request already pending. You have been signed out.'
+          : 'Deletion request submitted. You have been signed out.',
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to request deletion.');
+      setDeletionSubmitting(false);
+      return;
+    }
+
+    try {
+      await AsyncStorage.removeItem(LOCAL_PRIVACY_STORAGE_KEY);
+      await signOut();
+    } catch {
+      await AsyncStorage.removeItem(LOCAL_PRIVACY_STORAGE_KEY).catch(() => undefined);
+    } finally {
+      setDeletionSubmitting(false);
+      router.replace('/auth');
+    }
   };
 
   const handleExport = async () => {
@@ -190,6 +207,39 @@ export default function PrivacyScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
+      <Modal
+        transparent
+        visible={deletionConfirmVisible}
+        animationType="fade"
+        onRequestClose={() => setDeletionConfirmVisible(false)}
+      >
+        <View style={styles.modalScrim}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Request account deletion?</Text>
+            <Text style={styles.modalBody}>
+              Your account will be marked pending deletion while K Scan AI processes required retention, security, and legal checks.
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                testID="deletion-cancel-button"
+                style={styles.modalSecondaryButton}
+                onPress={() => setDeletionConfirmVisible(false)}
+                disabled={deletionSubmitting}
+              >
+                <Text style={styles.modalSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                testID="deletion-confirm-button"
+                style={styles.modalDangerButton}
+                onPress={confirmDeletion}
+                disabled={deletionSubmitting}
+              >
+                <Text style={styles.modalDangerText}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <SafeAreaView style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backText}>Back</Text>
@@ -338,11 +388,18 @@ export default function PrivacyScreen() {
               </View>
 
               <Pressable
-                disabled={!remoteActionsEnabled || saving}
+                testID="privacy-delete-account-button"
+                disabled={!isAuthenticated || saving || deletionSubmitting || deletionPending}
                 style={styles.dangerButton}
                 onPress={handleDeletion}
               >
-                <Text style={styles.dangerButtonText}>Request Account Deletion</Text>
+                {deletionSubmitting ? (
+                  <ActivityIndicator size="small" color={COLORS.errorSoft} />
+                ) : (
+                  <Text style={styles.dangerButtonText}>
+                    {deletionPending ? 'Deletion Request Pending' : 'Delete Account'}
+                  </Text>
+                )}
               </Pressable>
             </View>
           </>
@@ -620,6 +677,64 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 107, 107, 0.08)',
   },
   dangerButtonText: {
+    ...TYPOGRAPHY.cta,
+    color: COLORS.errorSoft,
+    fontSize: 12,
+  },
+  modalScrim: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: LAYOUT.screenPadding,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+  },
+  modalCard: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.xl,
+    gap: SPACING.lg,
+  },
+  modalTitle: {
+    ...TYPOGRAPHY.title,
+    fontSize: 20,
+  },
+  modalBody: {
+    ...TYPOGRAPHY.body,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  modalSecondaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSecondaryText: {
+    ...TYPOGRAPHY.cta,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+  },
+  modalDangerButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.48)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 107, 107, 0.12)',
+  },
+  modalDangerText: {
     ...TYPOGRAPHY.cta,
     color: COLORS.errorSoft,
     fontSize: 12,

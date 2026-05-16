@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
+import { AUTH_CALLBACK_URL } from '../services/authConfig';
 
 /**
  * Returned by signUp so the caller can distinguish between an immediate
@@ -66,7 +67,11 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const signUp = useCallback(async (email: string, password: string): Promise<SignUpResult> => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: AUTH_CALLBACK_URL },
+    });
     if (error) throw error;
     return {
       session: data.session ?? null,
