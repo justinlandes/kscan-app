@@ -1,13 +1,21 @@
 /**
- * K Scan AI — Supabase Auth Verification
+ * K Scan AI — Supabase release gate (env + connectivity + RPC smoke).
  *
- * Run: node scripts/verify-supabase.js
+ * Run: npm run verify:supabase
  *
- * Checks that the required Supabase env vars are present and that the project
- * URL is reachable before you attempt a live auth + privacy persistence test.
+ * Design goals:
+ * - Do not blame "bad URL" when PostgREST returns 401 for a probe that omits Authorization.
+ * - Use Auth `/health` as primary reachability (matches hosted Supabase).
+ * - Classify RPC unauthenticated responses as PASS when 401/403 (expected).
+ * - Emit a final PASS / WARN / BLOCKER summary for physical-device readiness.
  */
 
 require('dotenv').config();
+
+const {
+  classifyRestV1RootResponse,
+  classifyEnsurePrivacySettingsUnauthenticated,
+} = require('./verify-supabase-helpers');
 
 const REQUIRED_VARS = [
   ['EXPO_PUBLIC_SUPABASE_URL', 'Supabase project URL (e.g. https://xxx.supabase.co)'],
@@ -18,7 +26,14 @@ const OPTIONAL_VARS = [
   ['EXPO_PUBLIC_SUPABASE_ACCESS_TOKEN', 'DEV-ONLY token override (not needed for normal auth)'],
 ];
 
-console.log('\n── K Scan AI Supabase Verification ──────────────────────────────────────\n');
+function normalizeBaseUrl(url) {
+  return String(url || '').replace(/\/+$/, '');
+}
+
+console.log('\n── K Scan AI — Supabase verification ───────────────────────────────────\n');
+
+/** @type {Array<{ code: 'PASS' | 'WARN' | 'BLOCKER' | 'INFO'; msg: string }>} */
+const gate = [];
 
 let allPresent = true;
 
@@ -45,33 +60,45 @@ for (const [key, description] of OPTIONAL_VARS) {
 }
 
 if (!allPresent) {
-  console.error('\n✗ Required Supabase env vars are missing. Add them to your .env file:');
-  console.error('\n  EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
-  console.error('  EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key\n');
-  console.error('  Find these in: Supabase Dashboard → Project Settings → API\n');
+  console.error('\n✗ BLOCKER: Required Supabase env vars are missing.\n');
   process.exit(1);
 }
 
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+gate.push({ code: 'PASS', msg: 'Required EXPO_PUBLIC_SUPABASE_* env vars present' });
+
+const url = normalizeBaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL);
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-console.log('\n── Connectivity Check ───────────────────────────────────────────────────\n');
+console.log('\n── Reachability (Auth API) ─────────────────────────────────────────────\n');
 
-async function checkHealth() {
-  // Hit the Supabase REST root — should return a JSON response even unauthenticated
-  const res = await fetch(`${url}/rest/v1/`, {
-    headers: { apikey: anonKey },
+async function checkAuthHealth() {
+  const res = await fetch(`${url}/auth/v1/health`, {
+    headers: { Accept: 'application/json', apikey: anonKey },
   });
-  return { ok: res.ok, status: res.status };
+  const text = await res.text();
+  return { status: res.status, text: text.slice(0, 120) };
 }
 
-async function checkRpc() {
-  // Call ensure_privacy_settings without a token — expect 401 (auth required), NOT 404
+async function checkRestRoot(apikeyOnly) {
+  const headers = apikeyOnly
+    ? { apikey: anonKey, Accept: 'application/json' }
+    : {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        Accept: 'application/json',
+      };
+  const res = await fetch(`${url}/rest/v1/`, { headers });
+  return { status: res.status, hadAuthorizationBearer: !apikeyOnly };
+}
+
+async function checkRpcEnsurePrivacySettingsNoUserJwt() {
   const res = await fetch(`${url}/rest/v1/rpc/ensure_privacy_settings`, {
     method: 'POST',
     headers: {
       apikey: anonKey,
       'Content-Type': 'application/json',
+      Accept: 'application/json',
+      // Intentionally no Authorization — proves RPC is not callable without a session
     },
     body: '{}',
   });
@@ -79,55 +106,149 @@ async function checkRpc() {
   return { status: res.status, body: text.slice(0, 200) };
 }
 
+function pushGateFromLevel(level, msg, { elevateInfoToPass = false } = {}) {
+  if (level === 'PASS' || (level === 'INFO' && elevateInfoToPass)) {
+    gate.push({ code: 'PASS', msg });
+  } else if (level === 'INFO') {
+    console.log(`  ℹ ${msg}`);
+  } else if (level === 'WARN') {
+    gate.push({ code: 'WARN', msg });
+    console.warn(`  ⚠ ${msg}`);
+  } else if (level === 'BLOCKER') {
+    gate.push({ code: 'BLOCKER', msg });
+    console.error(`  ✗ BLOCKER: ${msg}`);
+  }
+}
+
 (async () => {
   try {
-    const health = await checkHealth();
-    if (health.ok || health.status === 400) {
-      console.log(`  ✓ Supabase REST endpoint reachable (HTTP ${health.status})`);
+    const authHealth = await checkAuthHealth();
+    if (authHealth.status >= 200 && authHealth.status < 300) {
+      console.log(`  ✓ Auth API reachable (GET /auth/v1/health → HTTP ${authHealth.status})`);
+      gate.push({ code: 'PASS', msg: `Auth /health HTTP ${authHealth.status}` });
     } else {
-      console.warn(`  ! Supabase REST returned HTTP ${health.status} — check your URL`);
+      console.warn(`  ⚠ Auth /health returned HTTP ${authHealth.status}`);
+      gate.push({
+        code: 'WARN',
+        msg: `Auth /health HTTP ${authHealth.status} — confirm URL; fallback relies on PostgREST.`,
+      });
     }
   } catch (err) {
-    console.error(`  ✗ Cannot reach Supabase URL: ${err.message}`);
-    console.error('    Check EXPO_PUBLIC_SUPABASE_URL and your network connection.');
+    console.error(`  ✗ Cannot reach Auth API: ${err.message}`);
+    gate.push({ code: 'BLOCKER', msg: `Auth reachability: ${err.message}` });
+    printSummary(gate);
     process.exit(1);
   }
 
   try {
-    const rpc = await checkRpc();
-    if (rpc.status === 401 || rpc.status === 403) {
-      console.log(`  ✓ ensure_privacy_settings RPC exists and requires auth (HTTP ${rpc.status}) — RLS is active`);
-    } else if (rpc.status === 200) {
-      console.warn(`  ! ensure_privacy_settings returned 200 without auth — check RLS policies`);
-    } else {
-      console.warn(`  ! ensure_privacy_settings returned HTTP ${rpc.status}: ${rpc.body}`);
-      if (rpc.status === 404) {
-        console.error('    The RPC may not be deployed. Run supabase/migrations/202605130001_privacy_settings.sql.');
-      }
+    const apikeyOnly = await checkRestRoot(true);
+    const cApikey = classifyRestV1RootResponse(apikeyOnly.status, {
+      hadAuthorizationBearer: apikeyOnly.hadAuthorizationBearer,
+    });
+    console.log('\n── PostgREST probes ────────────────────────────────────────────────────\n');
+    console.log(`  GET /rest/v1/ (apikey only) → HTTP ${apikeyOnly.status}`);
+    console.log(`      → ${cApikey.detail}`);
+    pushGateFromLevel(cApikey.level, `REST root apikey-only: ${cApikey.detail}`, {
+      elevateInfoToPass: true,
+    });
+
+    console.log('\n── RPC: ensure_privacy_settings (no user JWT) ─────────────────────────\n');
+
+    let rpcStatus = -1;
+    let rpcClass = { level: 'WARN', detail: 'RPC not executed' };
+    try {
+      const rpc = await checkRpcEnsurePrivacySettingsNoUserJwt();
+      rpcStatus = rpc.status;
+      rpcClass = classifyEnsurePrivacySettingsUnauthenticated(rpc.status);
+      console.log(`  POST /rest/v1/rpc/ensure_privacy_settings (no Authorization) → HTTP ${rpc.status}`);
+      if (rpc.body && rpc.status !== 200) console.log(`      body preview: ${rpc.body.replace(/\s+/g, ' ')}`);
+      console.log(`      → ${rpcClass.detail}`);
+      pushGateFromLevel(rpcClass.level, rpcClass.detail);
+    } catch (err) {
+      console.error(`  ✗ RPC check failed: ${err.message}`);
+      gate.push({ code: 'BLOCKER', msg: `RPC probe: ${err.message}` });
+    }
+
+    const withBearer = await checkRestRoot(false);
+    let cBear = classifyRestV1RootResponse(withBearer.status, {
+      hadAuthorizationBearer: withBearer.hadAuthorizationBearer,
+    });
+
+    // Hosted Supabase often returns 401 for anonymous GET /rest/v1/ even when the project is healthy.
+    // If Auth /health works and the RPC rejects unauthenticated callers as expected, do not WARN on this probe.
+    const rpcProvesRestReachable =
+      rpcStatus === 401 || rpcStatus === 403;
+    if (rpcProvesRestReachable && withBearer.status === 401) {
+      cBear = {
+        level: 'INFO',
+        detail:
+          'HTTP 401 on GET /rest/v1/ with anon JWT — common on hosted Supabase (root browse restricted). PostgREST is reachable (RPC probe succeeded). Signed-in clients use the user access token, not this probe.',
+      };
+    }
+
+    console.log(`  GET /rest/v1/ (apikey + Authorization Bearer anon) → HTTP ${withBearer.status}`);
+    console.log(`      → ${cBear.detail}`);
+    if (cBear.level === 'PASS') {
+      gate.push({ code: 'PASS', msg: 'PostgREST root reachable with standard anon Bearer headers' });
+    } else if (cBear.level === 'WARN') {
+      gate.push({ code: 'WARN', msg: cBear.detail });
+    } else if (cBear.level === 'INFO') {
+      gate.push({
+        code: 'PASS',
+        msg: 'PostgREST reachable (REST root anon GET may be restricted; RPC auth gate verified)',
+      });
     }
   } catch (err) {
-    console.error(`  ✗ RPC check failed: ${err.message}`);
+    console.error(`  ✗ PostgREST probe failed: ${err.message}`);
+    gate.push({ code: 'BLOCKER', msg: `PostgREST: ${err.message}` });
+    printSummary(gate);
+    process.exit(1);
   }
 
-  console.log('\n── Next Steps ───────────────────────────────────────────────────────────\n');
-  console.log('  1. Start the Expo dev server:');
-  console.log('     npm start  (or: EXPO_PUBLIC_API_URL=https://kscan-app-1.onrender.com npm start)');
-  console.log('  2. Open the app in the Android emulator or on-device.');
-  console.log('  3. Tap PRIVACY CONTROL on the home screen.');
-  console.log('     → Sync status chip should show "Saved to Device" (signed out).');
-  console.log('     → "SIGN IN TO SYNC" banner should appear.');
-  console.log('  4. Tap the sign-in banner → /auth screen opens.');
-  console.log('  5. Enter credentials for a test Supabase user.');
-  console.log('     (Create one at: Supabase Dashboard → Authentication → Users → Add user)');
-  console.log('  6. After sign-in, Privacy screen should show:');
-  console.log('     → Sync status chip: "Saved to Account"');
-  console.log('     → Toggle subtitle: "linked to your K Scan account and saved securely"');
-  console.log('  7. Toggle "Do Not Sell or Share" ON.');
-  console.log('     → Check Supabase Dashboard → Table Editor → privacy_settings');
-  console.log('     → Row for your user should have opt_out_of_sale = true');
-  console.log('  8. Close and reopen the app.');
-  console.log('     → Privacy screen should reload with opt_out_of_sale = true from Supabase.');
-  console.log('  9. Sign out → chip shows "Saved to Device", sign-in CTA reappears.');
-  console.log(' 10. Sign back in → prior remote preference (opt_out_of_sale = true) is preserved.');
-  console.log('\n─────────────────────────────────────────────────────────────────────────\n');
+  console.log('\n── Schema parity ───────────────────────────────────────────────────────\n');
+  console.log(
+    '  ℹ Live table/column checks require Dashboard → SQL or Table Editor, or a service-role introspection job.',
+  );
+  console.log('     Expected objects (from repo migrations):');
+  console.log('       • public.profiles — extended by 202605130000_profiles_privacy_status.sql');
+  console.log('       • public.privacy_settings — 202605130001_privacy_settings.sql');
+  console.log('       • public.deletion_requests — 202605130003_deletion_requests.sql');
+  console.log(
+    '       • public.privacy_export_requests, public.privacy_correction_requests — 202605130004_*',
+  );
+  gate.push({
+    code: 'INFO',
+    msg: 'Schema parity must be confirmed in Supabase Dashboard if not all migrations are applied',
+  });
+
+  console.log('\n── Release gate summary ────────────────────────────────────────────────\n');
+  printSummary(gate);
+
+  const worst = worstCode(gate);
+  if (worst === 'BLOCKER') process.exit(1);
+
+  console.log('\n── Manual QA checklist (auth + privacy) ────────────────────────────────\n');
+  console.log('  1. Expo: npm start');
+  console.log('  2. Privacy → sign in with a test user');
+  console.log('  3. Toggle “Do Not Sell or Share” ON → verify row in privacy_settings');
+  console.log('  4. Restart app → preference reloads from Supabase');
+  console.log('  5. Edge Functions: confirm deployment before treating export/delete/correction as live\n');
+
+  process.exit(0);
 })();
+
+function worstCode(entries) {
+  if (entries.some((e) => e.code === 'BLOCKER')) return 'BLOCKER';
+  if (entries.some((e) => e.code === 'WARN')) return 'WARN';
+  return 'PASS';
+}
+
+function printSummary(entries) {
+  const worst = worstCode(entries);
+  const label =
+    worst === 'BLOCKER' ? 'BLOCKER' : worst === 'WARN' ? 'WARN (review items above)' : 'PASS';
+  console.log(`  Overall: ${label}`);
+  const counts = { PASS: 0, WARN: 0, BLOCKER: 0, INFO: 0 };
+  for (const e of entries) counts[e.code] = (counts[e.code] || 0) + 1;
+  console.log(`  Counts: PASS=${counts.PASS} WARN=${counts.WARN} BLOCKER=${counts.BLOCKER}`);
+}
