@@ -8,6 +8,18 @@ import {
   warningPulse,
 } from '../services/haptics';
 
+// ── E2E / Simulator mock ──────────────────────────────────────────────────────
+// When EXPO_PUBLIC_E2E_MOCK_SCAN=true, capturePhoto bypasses the hardware
+// camera so the full IDLE→CAPTURING→PREVIEW→PROCESSING→RESULT flow can be
+// exercised on the iOS Simulator (where the camera is unavailable).
+// All three layers (capture, compression, API) must have the flag set to true
+// for a fully mocked end-to-end flow. Each layer is independently guarded.
+const IS_E2E_MOCK = process.env.EXPO_PUBLIC_E2E_MOCK_SCAN === 'true';
+
+// Placeholder URI — the value is ignored by the also-mocked compressForUpload.
+const MOCK_PHOTO_URI = 'kscan-e2e-mock';
+// ── End mock section ──────────────────────────────────────────────────────────
+
 // Minimum time to stay in 'processing' so the PerceptionLayer HUD has time to
 // complete its entry animation (~730ms) before the result card appears.
 const MIN_ANALYSIS_MS = 600;
@@ -58,6 +70,29 @@ export function useKScan() {
 
   const capturePhoto = useCallback(
     async (cameraRef) => {
+      // ── E2E mock capture ─────────────────────────────────────────────────────
+      if (IS_E2E_MOCK) {
+        if (captureInProgressRef.current || status !== 'idle') {
+          warnInvalidTransition(status, 'capturing');
+          return;
+        }
+        captureInProgressRef.current = true;
+        setStatus('capturing');
+        softImpact();
+        try {
+          // Brief pause so the "capturing" state renders before transitioning.
+          await new Promise(r => setTimeout(r, 500));
+          if (!isMounted.current) return;
+          setPhoto({ uri: MOCK_PHOTO_URI });
+          setError(null);
+          setStatus('preview');
+        } finally {
+          captureInProgressRef.current = false;
+        }
+        return;
+      }
+      // ── End mock capture ─────────────────────────────────────────────────────
+
       if (captureInProgressRef.current || status !== 'idle') {
         warnInvalidTransition(status, 'capturing');
         return;

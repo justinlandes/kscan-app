@@ -10,8 +10,9 @@ import {
   Animated,
   BackHandler,
   Modal,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StatusBar } from 'expo-status-bar';
 
@@ -98,7 +99,7 @@ function SavedToast({ onDismiss }) {
   );
 }
 
-function ActionButton({ label, onPress, variant = 'primary', disabled = false }) {
+function ActionButton({ label, onPress, variant = 'primary', disabled = false, testID }) {
   const isPrimary = variant === 'primary';
   const isSecondary = variant === 'secondary';
   const isTertiary = variant === 'tertiary';
@@ -116,6 +117,7 @@ function ActionButton({ label, onPress, variant = 'primary', disabled = false })
       disabled={disabled}
       activeOpacity={0.86}
       accessibilityLabel={label}
+      testID={testID}
     >
       <Text
         style={[
@@ -140,7 +142,7 @@ function ProcessingPanel() {
   }, []);
 
   return (
-    <View style={styles.processingPanel}>
+    <View style={styles.processingPanel} testID="processing-panel">
       <View style={styles.processingIndicatorSlot}>
         {showSpinner ? (
           <ActivityIndicator size={LOADING.indicatorSize} color={COLORS.accent} />
@@ -191,6 +193,12 @@ export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
+
+  // iOS safe-area insets — used to position absolutely-placed overlays correctly
+  // on Dynamic Island (top ~59dp) and gesture-home (bottom ~34dp) devices.
+  // On Android the values reflect the system bars; we guard with Platform.OS
+  // where we must preserve the existing Android layout exactly.
+  const insets = useSafeAreaInsets();
 
   const {
     status,
@@ -424,7 +432,12 @@ export default function App() {
           {status === 'idle' && (
             <TouchableOpacity
               testID="library-button"
-              style={styles.libraryButton}
+              style={[
+                styles.libraryButton,
+                // iOS: replace hardcoded LAYOUT.safeTop with live inset so the
+                // button clears the Dynamic Island on iPhone 14 Pro / 15 Pro+.
+                Platform.OS === 'ios' && { top: insets.top + SPACING.lg },
+              ]}
               onPress={() => router.push('/library')}
               activeOpacity={0.7}
             >
@@ -435,7 +448,10 @@ export default function App() {
           {QA_TOOLS_ENABLED && status === 'idle' && (
             <TouchableOpacity
               testID="qa-toggle-button"
-              style={styles.qaToggleButton}
+              style={[
+                styles.qaToggleButton,
+                Platform.OS === 'ios' && { top: insets.top + SPACING.xl + 48 },
+              ]}
               onPress={() => setQaPanelVisible((visible) => !visible)}
               activeOpacity={0.7}
             >
@@ -445,7 +461,21 @@ export default function App() {
 
           {renderViewfinder(false)}
 
-          <View style={styles.bottomBar}>
+          <View
+            style={[
+              styles.bottomBar,
+              // iOS: ensure the scan button clears the home indicator (34dp on
+              // all Face ID devices). LAYOUT.cameraFooterPaddingBottom (32dp) is
+              // 2dp short; use the live bottom inset + a comfortable gap instead.
+              // Android layout is left exactly as before.
+              Platform.OS === 'ios' && {
+                paddingBottom: Math.max(
+                  LAYOUT.cameraFooterPaddingBottom,
+                  insets.bottom + SPACING.lg
+                ),
+              },
+            ]}
+          >
             {status === 'capturing' ? (
               <ActivityIndicator
                 testID="capturing-indicator"
@@ -503,7 +533,7 @@ export default function App() {
     if (status === 'preview') {
       return (
         <View style={styles.actionsContainer}>
-          <ActionButton label="Analyze Style" onPress={runAnalysis} />
+          <ActionButton label="Analyze Style" onPress={runAnalysis} testID="analyze-style-button" />
           <ActionButton label="Retake" onPress={retake} variant="secondary" />
         </View>
       );

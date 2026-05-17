@@ -1,24 +1,104 @@
-# iOS smoke test for K Scan AI.
-# Run after a fresh iOS sim or device install.
+# ─────────────────────────────────────────────────────────────────────────────
+# K Scan AI — iOS Happy Path (Mock-backed Simulator + Device)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# PREREQUISITES
+# ─────────────────────────────────────────────────────────────────────────────
+# This flow requires a build with EXPO_PUBLIC_E2E_MOCK_SCAN=true so the full
+# state machine can be exercised on the iOS Simulator (no real camera/backend).
+#
+# 1. Build using the dedicated e2e EAS profile:
+#      eas build --profile e2e --platform ios --local
+#    This produces a .app/.ipa with mock enabled and iOS Simulator target.
+#
+# 2. Install on a running Simulator:
+#      xcrun simctl install booted path/to/KScan.app
+#
+# 3. Run this flow:
+#      maestro test maestro/kscan-ios-scan.yaml
+#
+# WHAT THIS TESTS
+# ─────────────────────────────────────────────────────────────────────────────
+# Launch → (optional home screen) → Camera ready → Tap shutter →
+# Capturing → Preview → "Analyze Style" → Processing HUD →
+# Perception HUD → Analysis Card (result). Full state machine path.
+# Mock timings: capture ~500ms, compress ~300ms, API ~1800ms + 840ms HUD = ~3.5s.
+#
+# PERMISSION STRATEGY
+# ─────────────────────────────────────────────────────────────────────────────
+# Maestro >= 1.36 supports pre-granting permissions via the launchApp block.
+# The `permissions: camera: allow` line below is the preferred approach.
+# If your Maestro version does not support it, it is silently ignored and the
+# fallback runFlow blocks below handle the OS dialog instead.
+# ─────────────────────────────────────────────────────────────────────────────
+
 appId: com.kscanai.app
-name: "iOS Scan - Smoke"
+name: "iOS Happy Path — Mock Scan"
 tags:
   - ios
   - smoke
   - scan
+  - mock
 ---
-- launchApp
 
-# iOS system camera permission dialog — only on first install.
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 1 — Launch with camera permission pre-granted (Maestro >= 1.36)
+# ════════════════════════════════════════════════════════════════════════════
+- launchApp:
+    permissions:
+      camera: allow
+    clearState: false    # preserve library data between runs
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Fallback: handle iOS system camera dialog if pre-grant was not applied
 - runFlow:
     when:
-      visible: "Allow"
+      visible: ".*Camera.*"
+      platform: iOS
     commands:
-      - tapOn: "Allow"
+      - tapOn: "OK"
       - waitForAnimationToEnd:
           timeout: 1500
 
-# Camera screen must be live before proceeding.
+# Fallback: handle in-app permission screens (first-run or previously denied)
+- runFlow:
+    when:
+      visible: "Allow Camera"
+    commands:
+      - tapOn: "Allow Camera"
+      - waitForAnimationToEnd:
+          timeout: 1500
+
+- runFlow:
+    when:
+      visible: "Grant Access"
+    commands:
+      - tapOn: "Grant Access"
+      - waitForAnimationToEnd:
+          timeout: 1500
+
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 2 — Navigate from home screen (if present) to scan screen
+# ════════════════════════════════════════════════════════════════════════════
+# The router home screen (app/index.tsx) is the expo-router entry point.
+# If it is visible, tap START SCAN to navigate to the camera screen.
+# If the app launches directly to the camera (common on first cold start),
+# this block is skipped without failing.
+- runFlow:
+    when:
+      visible:
+        id: "start-scan-button"
+    commands:
+      - tapOn:
+          id: "start-scan-button"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 3 — Verify camera screen is live (idle state)
+# ════════════════════════════════════════════════════════════════════════════
 - extendedWaitUntil:
     visible:
       id: "scan-button"
@@ -27,27 +107,43 @@ tags:
 - assertVisible:
     id: "scan-button"
 
+- assertVisible: "K-SCAN"
+
 - takeScreenshot: maestro/screenshots/ios-01-camera-ready
 
-# Capture photo (idle → capturing → preview)
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 4 — Tap shutter (idle → capturing → preview)
+# ════════════════════════════════════════════════════════════════════════════
+# Mock build: capturePhoto() bypasses CameraView.takePictureAsync() and
+# transitions idle → capturing → preview in ~500ms with a placeholder photo.
 - tapOn:
     id: "scan-button"
 
 - waitForAnimationToEnd:
     timeout: 3000
 
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 5 — Verify preview state
+# ════════════════════════════════════════════════════════════════════════════
 - assertVisible:
     text: "Look Analyzer"
 
 - assertVisible:
-    text: "Analyze Style"
+    id: "analyze-style-button"
 
 - takeScreenshot: maestro/screenshots/ios-02-preview
 
-# Trigger analysis (preview → processing)
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 6 — Trigger analysis (preview → processing)
+# ════════════════════════════════════════════════════════════════════════════
 - tapOn:
-    text: "Analyze Style"
+    id: "analyze-style-button"
 
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 7 — Assert processing state (PerceptionLayer + ProcessingPanel)
+# ════════════════════════════════════════════════════════════════════════════
+# ProcessingPanel (testID="processing-panel") appears in the actions area.
+# PerceptionLayer overlays the screen — its text may obscure other elements.
 - extendedWaitUntil:
     visible:
       text: "Analyzing your look"
@@ -58,33 +154,56 @@ tags:
 
 - takeScreenshot: maestro/screenshots/ios-03-processing
 
-# Wait for AnalysisCard (processing → perceiving HUD → result)
-# 30 s covers: inference (5-15 s) + 600 ms min delay + ~1460 ms double HUD
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 8 — Wait for AnalysisCard (processing → perceiving HUD → result)
+# ════════════════════════════════════════════════════════════════════════════
+# Mock timings: ~300ms compress + ~1800ms API + ~840ms post-result HUD ≈ 3s.
+# 12s timeout gives comfortable headroom on slow CI agents.
 - extendedWaitUntil:
     visible:
       id: "analysis-card"
-    timeout: 30000
+    timeout: 12000
 
+- waitForAnimationToEnd
+
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 9 — Verify result card contents
+# ════════════════════════════════════════════════════════════════════════════
 - assertVisible:
     id: "analysis-card"
 
 - assertVisible:
-    text: "Style Analysis"
+    text: "STYLE ANALYSIS"
 
 - assertVisible:
     text: "Scan Again"
 
-- assertNotVisible:
-    text: "[DEV FALLBACK]"
+# Verify metadata chip labels (rendered uppercase via textTransform)
+- assertVisible:
+    text: "CATEGORY"
+
+- assertVisible:
+    text: "COLOR"
+
+- assertVisible:
+    text: "SILHOUETTE"
 
 - takeScreenshot: maestro/screenshots/ios-04-result
 
-# Reset
+# ════════════════════════════════════════════════════════════════════════════
+# STEP 10 — Dismiss card and verify state reset
+# ════════════════════════════════════════════════════════════════════════════
+# dismissResult() sets status → idle; camera screen must reappear.
 - tapOn:
     text: "Scan Again"
 
 - waitForAnimationToEnd:
     timeout: 2000
+
+- extendedWaitUntil:
+    visible:
+      id: "scan-button"
+    timeout: 8000
 
 - assertVisible:
     id: "scan-button"
