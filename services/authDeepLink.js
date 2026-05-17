@@ -29,6 +29,7 @@ function parseAuthCallbackUrl(url) {
   const params = { ...queryParams, ...hashParams };
   const accessToken = params.access_token || null;
   const refreshToken = params.refresh_token || null;
+  const tokenHash = params.token_hash || null;
   const type = params.type || null;
   const code = params.code || null;
   const error = params.error_description || params.error || null;
@@ -36,20 +37,38 @@ function parseAuthCallbackUrl(url) {
   return {
     accessToken,
     refreshToken,
+    tokenHash,
     type,
     code,
     error,
     hasSessionTokens: Boolean(accessToken && refreshToken),
+    hasTokenHash: Boolean(tokenHash && type),
     isRecovery: type === 'recovery',
   };
 }
 
 function getAuthCallbackRedirect(parsed) {
   if (parsed.isRecovery) return '/auth/update-password';
-  return '/privacy';
+  return '/';
+}
+
+function buildAuthCallbackUrlFromParams(params) {
+  if (!params || typeof params !== 'object') return null;
+  const entries = Object.entries(params)
+    .map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
+    .filter(([key, value]) => key && value !== undefined && value !== null && value !== '');
+
+  if (entries.length === 0) return null;
+
+  const query = entries
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
+
+  return `kscan://auth/callback?${query}`;
 }
 
 module.exports = {
+  buildAuthCallbackUrlFromParams,
   parseAuthCallbackUrl,
   getAuthCallbackRedirect,
 };

@@ -9,17 +9,22 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { COLORS, LAYOUT, RADIUS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 import { supabase } from '../../services/supabaseClient';
-import { getAuthCallbackRedirect, parseAuthCallbackUrl } from '../../services/authDeepLink';
+import {
+  buildAuthCallbackUrlFromParams,
+  getAuthCallbackRedirect,
+  parseAuthCallbackUrl,
+} from '../../services/authDeepLink';
 
 type CallbackState = 'loading' | 'error';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
   const warmUrl = Linking.useURL();
+  const routeParams = useLocalSearchParams();
   const hasHandledDeepLink = useRef(false);
   const [state, setState] = useState<CallbackState>('loading');
   const [message, setMessage] = useState('Finishing secure sign-in...');
@@ -30,13 +35,49 @@ export default function AuthCallbackScreen() {
       hasHandledDeepLink.current = true;
 
       const parsed = parseAuthCallbackUrl(url);
-      if (parsed.error) {
-        setMessage(parsed.error);
-        setState('error');
-        return;
-      }
-      if (parsed.code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(parsed.code);
+      try {
+        if (parsed.error) {
+          setMessage(parsed.error);
+          setState('error');
+          return;
+        }
+
+        if (parsed.code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(parsed.code);
+          if (error) {
+            setMessage(error.message || 'This sign-in link could not be used.');
+            setState('error');
+            return;
+          }
+          router.replace(getAuthCallbackRedirect(parsed));
+          return;
+        }
+
+        if (parsed.hasTokenHash) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: parsed.tokenHash,
+            type: parsed.type,
+          } as any);
+          if (error) {
+            setMessage(error.message || 'This sign-in link could not be verified.');
+            setState('error');
+            return;
+          }
+          router.replace(getAuthCallbackRedirect(parsed));
+          return;
+        }
+
+        if (!parsed.hasSessionTokens) {
+          setMessage('This sign-in link is missing its secure session tokens.');
+          setState('error');
+          return;
+        }
+
+        const { error } = await supabase.auth.setSession({
+          access_token: parsed.accessToken,
+          refresh_token: parsed.refreshToken,
+        });
+
         if (error) {
           setMessage(error.message || 'This sign-in link could not be used.');
           setState('error');
@@ -44,26 +85,10 @@ export default function AuthCallbackScreen() {
         }
         router.replace(getAuthCallbackRedirect(parsed));
         return;
-      }
-
-      if (!parsed.hasSessionTokens) {
-        setMessage('This sign-in link is missing its secure session tokens.');
+      } catch {
+        setMessage('This sign-in link could not be completed.');
         setState('error');
-        return;
       }
-
-      const { error } = await supabase.auth.setSession({
-        access_token: parsed.accessToken,
-        refresh_token: parsed.refreshToken,
-      });
-
-      if (error) {
-        setMessage(error.message || 'This sign-in link could not be used.');
-        setState('error');
-        return;
-      }
-
-      router.replace(getAuthCallbackRedirect(parsed));
     },
     [router],
   );
@@ -75,6 +100,27 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     void handleUrl(warmUrl);
   }, [handleUrl, warmUrl]);
+
+  useEffect(() => {
+    void handleUrl(buildAuthCallbackUrlFromParams(routeParams));
+  }, [handleUrl, routeParams]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (hasHandledDeepLink.current) return;
+      hasHandledDeepLink.current = true;
+      void supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          router.replace('/');
+          return;
+        }
+        setMessage('This sign-in link could not be read. Request a fresh link and try again.');
+        setState('error');
+      });
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [router]);
 
   const openAuth = () => router.replace('/auth');
 
