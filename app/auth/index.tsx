@@ -34,11 +34,7 @@ export default function AuthScreen() {
   // Navigate away when a session appears (sign-in or immediate signup without email confirmation)
   useEffect(() => {
     if (isAuthenticated) {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
+      router.replace('/');
     }
   }, [isAuthenticated, router]);
 
