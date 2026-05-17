@@ -17,7 +17,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "K Scan uses your camera to photograph your outfit for style analysis."
+          "cameraPermission": "K Scan uses your camera to scan fashion items and find visually similar products."
         }
       ],
       "expo-router"
@@ -50,8 +50,9 @@
     },
     "ios": {
       "bundleIdentifier": "com.kscanai.app",
+      "supportsTablet": false,
       "infoPlist": {
-        "NSCameraUsageDescription": "K Scan uses your camera to photograph your outfit for style analysis."
+        "NSCameraUsageDescription": "K Scan uses your camera to scan fashion items and find visually similar products."
       }
     },
     "extra": {

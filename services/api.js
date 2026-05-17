@@ -12,6 +12,30 @@
  *   Hosted beta backend:    EXPO_PUBLIC_API_URL=https://kscan-app-1.onrender.com
  */
 
+// ── E2E / Simulator mock ──────────────────────────────────────────────────────
+// Set EXPO_PUBLIC_E2E_MOCK_SCAN=true (baked at build time) to bypass the real
+// backend and return a deterministic fashion response. This is opt-in only —
+// production builds must never set this variable.
+// The full state-machine path (idle → capturing → preview → processing → result)
+// is still exercised; only the network call is skipped.
+const IS_E2E_MOCK = process.env.EXPO_PUBLIC_E2E_MOCK_SCAN === 'true';
+
+const MOCK_ANALYSIS_DELAY_MS = 1800; // realistic "thinking" pause for UI exercise
+
+const MOCK_ANALYSIS_RESPONSE = {
+  type: 'fashion',
+  result:
+    'Clean, well-proportioned look. The slim silhouette reads as effortlessly ' +
+    'modern with a neutral palette that transitions cleanly across casual and ' +
+    'smart-casual contexts. Tonal layering adds depth without visual clutter.',
+  metadata: {
+    category:   'Smart Casual',
+    color:      'Navy / White',
+    silhouette: 'Slim Straight',
+  },
+  products: [],
+};
+
 // 25 seconds — must exceed the server's 15-second AI timeout plus network
 // round-trip, so the client waits for the server's own error response rather
 // than timing out first and showing a generic network error.
@@ -109,20 +133,55 @@ function deduplicateProducts(products) {
  * Throws on network failure, server error, or timeout.
  */
 export async function analyzeImage(base64) {
+  // ── E2E mock path ──────────────────────────────────────────────────────────
+  if (IS_E2E_MOCK) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log('[K-SCAN E2E] Mock scan active — skipping real backend call');
+    }
+    await new Promise(r => setTimeout(r, MOCK_ANALYSIS_DELAY_MS));
+    return MOCK_ANALYSIS_RESPONSE;
+  }
+  // ── End mock path ──────────────────────────────────────────────────────────
+
   if (__DEV__) console.log('[DEBUG] analyzeImage called payloadLen=' + (base64?.length ?? 0));
+
+  const requestStartedAt = Date.now();
+  const endpoint = `${BASE_URL}/api/analyze`;
+  const requestBody = JSON.stringify({ image: base64 });
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.info('[KSCAN_DIAG_ANALYZE]', {
+      phase: 'request_prepared',
+      url: endpoint,
+      imageValueLength: typeof base64 === 'string' ? base64.length : 0,
+      jsonBodyLength: requestBody.length,
+      hasExpectedDataUriPrefix:
+        typeof base64 === 'string' && base64.startsWith('data:image/jpeg;base64,'),
+    });
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ANALYZE_TIMEOUT_MS);
 
   try {
     if (__DEV__) console.log('[DEBUG] FETCH_START url=' + BASE_URL + '/api/analyze');
-    const response = await fetch(`${BASE_URL}/api/analyze`, {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.info('[KSCAN_DIAG_ANALYZE]', { phase: 'fetch_start', elapsedMs: Date.now() - requestStartedAt });
+    }
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64 }),
+      body: requestBody,
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.info('[KSCAN_DIAG_ANALYZE]', {
+        phase: 'fetch_response',
+        elapsedMs: Date.now() - requestStartedAt,
+        status: response.status,
+        ok: response.ok,
+      });
+    }
     if (__DEV__) console.log('[DEBUG] FETCH_DONE status=' + response.status);
 
     // Guard: try parsing JSON; surface a clean error if the server sent garbage
@@ -179,6 +238,14 @@ export async function analyzeImage(base64) {
     };
   } catch (err) {
     clearTimeout(timeoutId);
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.info('[KSCAN_DIAG_ANALYZE]', {
+        phase: 'fetch_error',
+        elapsedMs: Date.now() - requestStartedAt,
+        errorName: err?.name ?? null,
+        errorMessage: err?.message ?? null,
+      });
+    }
     if (err.name === 'AbortError') {
       throw userSafeError(
         'Analysis timed out.',
